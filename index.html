@@ -174,10 +174,14 @@ h2 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: 0; text-trans
 #map {
   height: min(59vh, 630px);
   min-height: 340px;
-  background: var(--ground);
+  background: #dbe7f3;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
   z-index: 0;
+}
+
+.leaflet-container {
+  background: #dbe7f3;
 }
 .map-unavailable {
   height: 100%;
@@ -486,7 +490,7 @@ footer {
 
     <footer>
       <span>Tracker totals include all locations. Your progress stays on this device.</span>
-      <span>Map tiles by Esri and its providers.</span>
+      <span>Map data © OpenStreetMap contributors. Tiles by OSM France.</span>
 
     </footer>
   </div>
@@ -893,9 +897,10 @@ footer {
         markerZoomAnimation: !reducedMotion
       }).setView([43.65, -79.38], 11);
 
-      leaflet.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+      leaflet.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png", {
+        subdomains: "abc",
         maxZoom: 20,
-        attribution: '&copy; <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a> and its <a href="https://www.esri.com/en-us/legal/terms/data-attributions" target="_blank" rel="noopener">providers</a>'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> &middot; Tiles by <a href="https://www.openstreetmap.fr/" target="_blank" rel="noopener">OSM France</a>'
       }).on("tileerror", () => {
         $("tile-notice").hidden = false;
       }).addTo(map);
