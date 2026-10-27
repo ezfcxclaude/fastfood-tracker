@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2f4f7">
+  <title>Fast Food Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+  <style>
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap");
+
+:root {
+  --ground: #f2f4f7;
+  --surface: #ffffff;
+  --border: #e6e6e6;
+  --rule: #f0f0f0;
+  --control: #d4d4d4;
+  --text: #0a0a0a;
+  --muted: #6b6b6b;
+  --accent: #141414;
+  --chart: #1d5fbf;
+  --unverified: #858585;
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --gap: 12px;
+  --pad: 24px;
+  --control-height: 44px;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+button, input, select {
+  font: inherit;
+  color: inherit;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+button, select { cursor: pointer; }
+button { background: none; border: 0; }
+button:disabled { cursor: default; opacity: .5; }
+strong, b { font-weight: 500; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+[hidden] { display: none !important; }
+.shell { max-width: 1560px; margin-inline: auto; padding-inline: 24px; }
+.masthead {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  border-bottom: 1px solid var(--border);
+}
+.wordmark, .local-note { display: flex; align-items: center; gap: var(--gap); }
+.wordmark { font-size: 12px; font-weight: 500; text-transform: none; }
+.wordmark svg { width: 16px; height: 16px; color: var(--accent); }
+.local-note { font-size: 12px; color: var(--muted); }
+.local-note svg { width: 14px; height: 14px; flex-shrink: 0; }
+.intro {
+  padding-block: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: var(--gap);
+}
+h1 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.counts { color: var(--muted); display: flex; flex-wrap: wrap; gap: var(--gap); font-size: 12px; }
+.counts strong { color: var(--text); }
+.counts span + span::before { content: "/"; color: var(--control); margin-right: 12px; }
+.intro-note { margin: 0; max-width: 240px; color: var(--muted); font-size: 12px; }
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+.summary-item {
+  padding-inline: 24px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: var(--gap);
+}
+.summary-item:first-child { padding-left: 0; border-left: 0; }
+.summary-item:last-child { padding-right: 0; }
+.summary-number { font-size: 28px; line-height: 1.2; font-weight: 500; color: var(--text); }
+#count-not-applied { color: var(--chart); }
+.summary-label { color: var(--muted); font-size: 12px; }
+.filter-bar {
+  padding-block: 24px;
+  display: grid;
+  grid-template-columns: minmax(210px, 1.5fr) minmax(0, 2.5fr);
+  align-items: end;
+  gap: var(--gap);
+}
+.field label, .field-label {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none;
+}
+input, .filter-select {
+  width: 100%;
+  height: var(--control-height);
+  border: 1px solid var(--control);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+input { padding: 0 12px 0 36px; }
+#search { font-size: 16px; }
+input::placeholder { color: var(--muted); opacity: 1; }
+.search-wrap { position: relative; }
+.search-wrap svg {
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.filter-select { padding: 0 24px 0 12px; text-overflow: ellipsis; }
+.filter-options { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: var(--gap); }
+.filter-toggle { display: none; }
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 1fr);
+  gap: var(--gap);
+  align-items: start;
+  padding-bottom: 24px;
+}
+.map-panel, .list-panel {
+  min-width: 0;
+  padding: var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+.map-panel { position: sticky; top: 12px; }
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--gap);
+  margin-bottom: 12px;
+  min-height: 24px;
+}
+h2 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.section-detail { color: var(--muted); font-size: 12px; }
+#map {
+  height: min(59vh, 630px);
+  min-height: 340px;
+  background: var(--ground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  z-index: 0;
+}
+.map-unavailable {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+.map-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gap);
+  padding-block: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.legend-item { display: flex; align-items: center; gap: var(--gap); font-size: 12px; font-weight: 400; }
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--accent);
+}
+.legend-dot.unverified { background: var(--unverified); }
+.pin-count { margin-left: auto; font-size: 12px; color: var(--muted); }
+.map-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+.text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap);
+  color: var(--accent);
+  font-size: 12px;
+  min-height: var(--control-height);
+  padding: 0;
+  white-space: nowrap;
+}
+.text-button:hover { text-decoration: underline; }
+.text-button svg { width: 14px; height: 14px; }
+.list-head { margin-bottom: 0; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.list-head-right { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: var(--gap); }
+.location-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 139px;
+  gap: var(--gap);
+  padding-block: 24px;
+  border-bottom: 1px solid var(--rule);
+}
+.location-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.location-title { display: flex; align-items: center; flex-wrap: wrap; gap: var(--gap); margin-bottom: 12px; }
+.location-title h3 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: 0; overflow-wrap: anywhere; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: #f0f0f0;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.badge.unverified { color: var(--muted); background: #f8f8f8; }
+.address { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.area { margin: 12px 0 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.status-field { align-self: center; }
+.status-field label { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-bottom: 12px; text-transform: none; }
+.status-select {
+  width: 100%;
+  min-height: var(--control-height);
+  border: 1px solid var(--control);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  padding: 6px;
+  font-size: 12px;
+}
+.status-select[data-active="true"] { color: var(--accent); background: #f5f5f5; }
+.empty-state { text-align: center; padding: 24px 12px; }
+.empty-state svg { width: 24px; height: 24px; color: var(--muted); }
+.empty-state h3 { margin: 12px 0; font-weight: 500; font-size: 16px; }
+.empty-state p { color: var(--muted); margin: 0 0 12px; font-size: 14px; }
+.notice { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+footer {
+  border-top: 1px solid var(--border);
+  padding-block: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gap);
+  font-size: 12px;
+  color: var(--muted);
+}
+.leaflet-container {
+  font-family: "Geist", sans-serif;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.leaflet-tile-pane { filter: grayscale(1); }
+.leaflet-container a { color: var(--accent); }
+.leaflet-control-attribution { font-size: 10px !important; background: var(--surface) !important; }
+.leaflet-bar { box-shadow: none !important; border: 1px solid var(--control) !important; border-radius: var(--radius-control); }
+.leaflet-bar a, .leaflet-bar a:hover {
+  background: var(--surface);
+  color: var(--text);
+  font-family: "Geist", sans-serif;
+  font-weight: 500;
+}
+.leaflet-bar a:not(:last-child) { border-bottom: 1px solid var(--border); }
+.leaflet-control-zoom a, .leaflet-control-zoom a:hover { width: 44px; height: 44px; line-height: 44px; }
+.location-pin { background: transparent; border: 0; }
+.pin-shape {
+  display: block;
+  position: absolute;
+  left: 5px;
+  top: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--accent);
+  border: 1px solid var(--surface);
+}
+.location-pin.unverified .pin-shape { background: var(--unverified); }
+.ledger-cluster {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--surface);
+  font-family: "Geist", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  box-shadow: none;
+}
+.ledger-cluster.unverified { background: var(--unverified); }
+.ledger-cluster.mixed { background: var(--surface); color: var(--accent); border: 3px solid var(--unverified); }
+.ledger-cluster > span { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.leaflet-popup-content-wrapper {
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
+}
+.leaflet-popup-tip { background: var(--surface); box-shadow: none; }
+.leaflet-popup-content { margin: 24px; min-width: 210px; font-size: 14px; line-height: 1.5; }
+.leaflet-container a.leaflet-popup-close-button { color: var(--muted); font-family: "Geist", sans-serif; font-weight: 400; width: 44px; height: 44px; line-height: 44px; }
+.leaflet-tooltip { background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: none; font-family: "Geist", sans-serif; }
+.popup h3 { font-size: 16px; font-weight: 500; margin: 0 32px 12px 0; line-height: 1.3; overflow-wrap: anywhere; }
+.popup p { margin: 12px 0 0; }
+.popup .status-field { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rule); }
+.popup .status-select { font-size: 14px; }
+
+@media (max-width: 1050px) {
+  .workspace { grid-template-columns: minmax(0, 1fr) minmax(350px, 1fr); }
+  .filter-bar { grid-template-columns: 1fr; }
+  .summary-item { display: block; padding-inline: 12px; }
+  .summary-number, .summary-label { display: block; }
+  .summary-label { margin-top: 12px; }
+  .map-panel, .list-panel { padding: 12px; }
+}
+@media (max-width: 760px) {
+  .shell { padding-inline: 16px; }
+  .wordmark, .local-note { gap: var(--gap); font-size: 12px; }
+  .intro-note { display: none; }
+  .summary { padding: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 12px; }
+  .summary-item { min-width: 0; overflow-wrap: anywhere; }
+  .summary-item:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .summary-item:nth-child(even) { padding-right: 0; }
+  .summary-number { font-size: 24px; min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+
+  .summary-label { font-size: 12px; line-height: 1.3; }
+  .filter-bar { grid-template-columns: minmax(0, 1fr) auto; padding-block: 12px; }
+  .filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--gap);
+    min-height: var(--control-height);
+    padding-inline: 12px;
+    border: 1px solid var(--control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    font-size: 12px;
+  }
+  .filter-toggle svg { width: 16px; height: 16px; }
+  .filter-toggle[aria-expanded="true"] { background: #ededed; }
+  .filter-options { display: none; grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
+  .filter-options.open { display: grid; }
+  .filter-options .field:first-child { grid-column: 1 / -1; }
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .map-panel { position: static; }
+  #map { height: 340px; min-height: 0; }
+  .leaflet-popup-content { margin: 12px; min-width: 0; max-height: 240px; overflow-y: auto; overflow-wrap: anywhere; }
+  footer { flex-direction: column; }
+
+}
+@media (max-width: 380px) {
+  .local-note span { max-width: 90px; }
+  .wordmark svg { display: none; }
+  .summary-item { padding-inline: 12px; }
+  .summary-number { font-size: 22px; }
+  .location-row { grid-template-columns: minmax(0, 1fr); }
+  .status-field { max-width: 220px; }
+  .popup .status-field { max-width: none; }
+  .list-head { align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+.map-link { color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; padding-block: 10px; }
+.map-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="masthead">
+      <div class="wordmark"><i data-lucide="utensils" aria-hidden="true"></i> The job search ledger</div>
+      <div class="local-note"><i data-lucide="hard-drive" aria-hidden="true"></i><span>Saved in this browser</span></div>
+    </div>
+
+    <header class="intro">
+      <div>
+        <h1>Fast Food Tracker</h1>
+        <div class="counts" id="location-counts" aria-live="polite">
+          <span><strong>—</strong> locations</span><span><strong>—</strong> verified</span><span><strong>—</strong> unverified</span>
+        </div>
+      </div>
+      <p class="intro-note">Your locations, your next steps.<br>A little order for the job search.</p>
+    </header>
+
+    <section class="summary" aria-label="Tracker totals across all locations">
+      <div class="summary-item"><strong class="summary-number" id="count-not-applied">0</strong><span class="summary-label">Not applied</span></div>
+      <div class="summary-item applied"><strong class="summary-number" id="count-applied">0</strong><span class="summary-label">Applied</span></div>
+      <div class="summary-item walked"><strong class="summary-number" id="count-walked-in">0</strong><span class="summary-label">Walked in</span></div>
+      <div class="summary-item"><strong class="summary-number" id="count-not-interested">0</strong><span class="summary-label">Not interested</span></div>
+    </section>
+
+    <div class="notice" id="storage-notice" role="status" hidden>Browser storage is unavailable or full. Some changes may only last for this visit.</div>
+
+    <section class="filter-bar" aria-label="Filter locations">
+      <div class="field">
+        <label for="search">Search locations</label>
+        <div class="search-wrap">
+          <i data-lucide="search" aria-hidden="true"></i>
+          <input id="search" type="search" placeholder="Chain name or street address" autocomplete="off">
+        </div>
+      </div>
+      <button class="filter-toggle" id="filter-toggle" aria-expanded="false" aria-controls="filter-options">
+        <i data-lucide="sliders-horizontal" aria-hidden="true"></i><span id="filter-toggle-label">Filters</span>
+      </button>
+      <div class="filter-options" id="filter-options">
+        <div class="field"><label for="chain-filter">Chain</label><select class="filter-select" id="chain-filter"><option value="">All chains</option></select></div>
+        <div class="field"><label for="verified-filter">Verification</label><select class="filter-select" id="verified-filter"><option value="">All locations</option><option value="verified">Verified only</option><option value="unverified">Unverified only</option></select></div>
+        <div class="field"><label for="status-filter">Your progress</label><select class="filter-select" id="status-filter"><option value="">All statuses</option><option value="not-applied">Not applied</option><option value="applied">Applied</option><option value="walked-in">Walked in</option><option value="not-interested">Not interested</option></select></div>
+      </div>
+    </section>
+
+    <main class="workspace">
+      <section class="map-panel" aria-labelledby="map-heading">
+  <div class="section-head">
+    <h2 id="map-heading">The map</h2>
+    <span class="section-detail">Toronto</span>
+  </div>
+  <div id="map" aria-label="Interactive map of locations in Toronto"></div>
+  <div class="map-legend" aria-label="Pin verification legend">
+    <span class="legend-item"><span class="legend-dot" aria-hidden="true"></span>Verified</span>
+    <span class="legend-item"><span class="legend-dot unverified" aria-hidden="true"></span>Unverified</span>
+    <span class="pin-count" id="pin-count" role="status" aria-live="polite"></span>
+  </div>
+  <p class="map-note" id="map-note"></p>
+  <p class="map-note" id="tile-notice" role="status" hidden>Map tiles failed to load. Pins and the location list still work.</p>
+</section>
+
+      <section class="list-panel" aria-labelledby="list-heading">
+        <div class="section-head list-head">
+          <h2 id="list-heading">Locations</h2>
+          <div class="list-head-right">
+            <span class="section-detail" id="results-count" role="status">— shown</span>
+            <button class="text-button" id="reset-filters" hidden>Clear filters</button>
+          </div>
+        </div>
+        <div id="location-list"></div>
+        <div class="empty-state" id="empty-state" hidden>
+          <i data-lucide="search-x" aria-hidden="true"></i>
+          <h3 id="empty-title">No matching locations</h3>
+          <p id="empty-description">Try a different search or loosen your filters.</p>
+          <button class="text-button" id="empty-reset">Clear all filters</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Tracker totals include all locations. Your progress stays on this device.</span>
+      <span>Map tiles by Esri and its providers.</span>
+
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script>
+    const LOCATIONS = [{"chain":"A&W","address":"1010A Wilson Ave (Downsview Plaza), Toronto, ON","area":"North York","verified":true,"lat":43.7199741,"lon":-79.5132612},{"chain":"A&W","address":"1115 Bloor St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.6598571,"lon":-79.4347571},{"chain":"A&W","address":"1277 York Mills Rd, Toronto, ON","area":"North York","verified":true,"lat":43.7603108,"lon":-79.3257773},{"chain":"A&W","address":"2300 Yonge St, Toronto, ON","area":"Toronto","verified":true,"lat":43.7070051,"lon":-79.398796},{"chain":"A&W","address":"250 The East Mall, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6317115,"lon":-79.555369},{"chain":"A&W","address":"3214 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.5974137,"lon":-79.5211383},{"chain":"A&W","address":"3300 Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6454405,"lon":-79.521771},{"chain":"A&W","address":"3318 Keele St, Toronto, ON","area":"North York","verified":true,"lat":43.7442615,"lon":-79.4865063},{"chain":"A&W","address":"3401 Dufferin St (Yorkdale), Toronto, ON","area":"North York","verified":true,"lat":43.7260969,"lon":-79.4549863},{"chain":"A&W","address":"361 Broadview Ave, Toronto, ON","area":"Toronto","verified":true,"lat":43.6653663,"lon":-79.3524135},{"chain":"A&W","address":"650 Queen St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.6468335,"lon":-79.4063823},{"chain":"Burger King","address":"10 Eglinton Ave E, Toronto, ON","area":"Toronto","verified":true,"lat":43.706866,"lon":-79.3981466},{"chain":"Burger King","address":"1068 Pape Ave, Toronto, ON","area":"East York","verified":true,"lat":43.6904888,"lon":-79.3493835},{"chain":"Burger King","address":"1077 Wilson Ave, North York, ON","area":"North York","verified":true,"lat":43.726543,"lon":-79.4803954},{"chain":"Burger King","address":"11 Leslie St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6594299,"lon":-79.3283444},{"chain":"Burger King","address":"115 Haynes Ave, North York, ON","area":"North York","verified":true,"lat":43.7702353,"lon":-79.4993683},{"chain":"Burger King","address":"130 King St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.6484179,"lon":-79.3832425},{"chain":"Burger King","address":"1436 Lawrence Ave E, Toronto, ON","area":"North York","verified":true,"lat":43.7421,"lon":-79.31274},{"chain":"Burger King","address":"1448 Lawrence Ave E, North York, ON","area":"North York","verified":true,"lat":43.7427952,"lon":-79.3138126},{"chain":"Burger King","address":"145 Silver Reign Dr, Toronto, ON","area":"Etobicoke","verified":true,"lat":43.71244,"lon":-79.55685},{"chain":"Burger King","address":"1560 The Queensway, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.618422,"lon":-79.5397359},{"chain":"Burger King","address":"1597 Wilson Ave, North York, ON","area":"North York","verified":true,"lat":43.71965,"lon":-79.51065},{"chain":"Burger King","address":"1615 Wilson Ave, North York, ON","area":"North York","verified":true,"lat":43.72003,"lon":-79.51168},{"chain":"Burger King","address":"181 Bay St, Toronto, ON","area":"Toronto","verified":true,"lat":43.647176,"lon":-79.3782977},{"chain":"Burger King","address":"200 Front St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.6449605,"lon":-79.3858597},{"chain":"Burger King","address":"2353 Finch Ave W, Toronto, ON","area":"North York","verified":true,"lat":43.75113,"lon":-79.54286},{"chain":"Burger King","address":"2362 Finch Ave W, Toronto, ON","area":"North York","verified":true,"lat":43.752002,"lon":-79.5447087},{"chain":"Burger King","address":"2377 Finch Ave W, North York, ON","area":"North York","verified":true,"lat":43.75134,"lon":-79.54356},{"chain":"Burger King","address":"243 Yonge St, Toronto, ON","area":"Toronto","verified":true,"lat":43.65481,"lon":-79.37991},{"chain":"Burger King","address":"2512 Jane St, Toronto, ON","area":"North York","verified":true,"lat":43.739516,"lon":-79.5134288},{"chain":"Burger King","address":"267 College St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6577736,"lon":-79.3996819},{"chain":"Burger King","address":"3003 Danforth Ave, Toronto, ON","area":"Toronto","verified":true,"lat":43.6904341,"lon":-79.2905769},{"chain":"Burger King","address":"3408 Weston Rd, Toronto, ON","area":"York","verified":true,"lat":43.7489723,"lon":-79.5419306},{"chain":"Burger King","address":"3434 Weston Rd, North York, ON","area":"North York","verified":true,"lat":43.7498691,"lon":-79.5421104},{"chain":"Burger King","address":"500 Rexdale Blvd, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.719399,"lon":-79.5989267},{"chain":"Burger King","address":"5322 Dundas St, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.635459,"lon":-79.5413974},{"chain":"Burger King","address":"555 University Ave, Toronto, ON","area":"Toronto","verified":true,"lat":43.6572672,"lon":-79.3875622},{"chain":"Burger King","address":"61 Signet Dr, Toronto, ON","area":"North York","verified":true,"lat":43.75744,"lon":-79.53735},{"chain":"Burger King","address":"62 Overlea Blvd, East York, ON","area":"East York","verified":true,"lat":43.7078725,"lon":-79.3433748},{"chain":"Burger King","address":"636 Dixon Rd, Toronto, ON","area":"Etobicoke","verified":true,"lat":43.69108,"lon":-79.57558},{"chain":"Burger King","address":"6630 Finch Ave W, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.73484,"lon":-79.60448},{"chain":"Burger King","address":"829 The Queensway, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6246625,"lon":-79.5081908},{"chain":"Burger King","address":"940 Lawrence Ave W, Toronto, ON","area":"North York","verified":true,"lat":43.714211,"lon":-79.456398},{"chain":"Burger King","address":"98 Danforth Ave, Toronto, ON","area":"Toronto","verified":true,"lat":43.676481,"lon":-79.3585305},{"chain":"Domino's","address":"10 Mallard Rd, North York, ON","area":"North York","verified":true,"lat":43.7479878,"lon":-79.3475561},{"chain":"Domino's","address":"1046 Albion Rd Unit A, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.7370363,"lon":-79.564087},{"chain":"Domino's","address":"1200 Weston Rd, Toronto, ON","area":"York","verified":true,"lat":43.6876704,"lon":-79.4917474},{"chain":"Domino's","address":"1269 College St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6509346,"lon":-79.4393925},{"chain":"Domino's","address":"1553 Steeles Ave E, North York, ON","area":"North York","verified":true,"lat":43.8053458,"lon":-79.3840864},{"chain":"Domino's","address":"190 Queen's Plate Dr, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.71975,"lon":-79.59441},{"chain":"Domino's","address":"1906 Jane St, York, ON","area":"York","verified":true,"lat":43.7105784,"lon":-79.5060424},{"chain":"Domino's","address":"201 Sheppard Ave E, North York, ON","area":"North York","verified":true,"lat":43.764031,"lon":-79.3988683},{"chain":"Domino's","address":"222 Finch Ave W, North York, ON","area":"North York","verified":true,"lat":43.7758055,"lon":-79.43455},{"chain":"Domino's","address":"2298 Keele St, North York, ON","area":"North York","verified":true,"lat":43.7031791,"lon":-79.4771514},{"chain":"Domino's","address":"2811 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6015577,"lon":-79.5009271},{"chain":"Domino's","address":"312 Queen St E, Toronto, ON","area":"Toronto","verified":true,"lat":43.6554922,"lon":-79.3655455},{"chain":"Domino's","address":"3345 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.5961004,"lon":-79.5256795},{"chain":"Domino's","address":"344 High Park Ave, Toronto, ON","area":"Toronto","verified":true,"lat":43.665363,"lon":-79.4705311},{"chain":"Domino's","address":"354 Oakwood Ave, Toronto, ON","area":"York","verified":true,"lat":43.68676,"lon":-79.43882},{"chain":"Domino's","address":"358 Marlee Ave, Toronto, ON","area":"York","verified":true,"lat":43.707172,"lon":-79.4426323},{"chain":"Domino's","address":"3828-A Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.641549,"lon":-79.5378443},{"chain":"Domino's","address":"3843 Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.640628,"lon":-79.5389522},{"chain":"Domino's","address":"4204 Dundas St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.66065,"lon":-79.51128},{"chain":"Domino's","address":"4207 Keele St, North York, ON","area":"North York","verified":true,"lat":43.7732563,"lon":-79.4929651},{"chain":"Domino's","address":"460 Renforth Dr Unit 11, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6511861,"lon":-79.579613},{"chain":"Domino's","address":"462 Sherbourne St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6664511,"lon":-79.3745822},{"chain":"Domino's","address":"51 Niagara St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6417577,"lon":-79.4020478},{"chain":"Domino's","address":"784 Eglinton Ave E, Toronto, ON","area":"East York","verified":true,"lat":43.7132468,"lon":-79.3670584},{"chain":"Domino's","address":"820 Sheppard Ave W, North York, ON","area":"North York","verified":true,"lat":43.75318,"lon":-79.45095},{"chain":"Domino's","address":"873 Danforth Ave, Toronto, ON","area":"Toronto","verified":true,"lat":43.67978,"lon":-79.33951},{"chain":"Domino's","address":"936 Bathurst St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6690456,"lon":-79.4130086},{"chain":"Harvey's","address":"1791 Avenue Rd, Toronto, ON","area":"North York","verified":true,"lat":43.7300831,"lon":-79.4185486},{"chain":"Harvey's","address":"2150 Bloor St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.6519907,"lon":-79.4733958},{"chain":"Harvey's","address":"3120 Dufferin St, Toronto, ON","area":"North York","verified":true,"lat":43.7153526,"lon":-79.4552888},{"chain":"Harvey's","address":"49 Eglinton Ave E, Toronto, ON","area":"Toronto","verified":true,"lat":43.7069438,"lon":-79.3964665},{"chain":"KFC","address":"1700 Wilson Ave, Toronto, ON","area":"North York","verified":true,"lat":43.7205731,"lon":-79.5109349},{"chain":"KFC","address":"1743 Albion Rd, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.74326,"lon":-79.60502},{"chain":"KFC","address":"1800 Sheppard Ave E, North York, ON","area":"North York","verified":true,"lat":43.7778569,"lon":-79.3437784},{"chain":"KFC","address":"1971 Finch Ave W, North York, ON","area":"North York","verified":true,"lat":43.75617,"lon":-79.51863},{"chain":"KFC","address":"2032 Kipling Ave, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.7121674,"lon":-79.5675374},{"chain":"KFC","address":"2377 Finch Ave W, North York, ON","area":"North York","verified":true,"lat":43.75134,"lon":-79.54356},{"chain":"KFC","address":"3401 Dufferin St Unit 733K (Yorkdale), North York, ON","area":"North York","verified":true,"lat":43.7260969,"lon":-79.4549863},{"chain":"KFC","address":"3777 Keele St, North York, ON","area":"North York","verified":true,"lat":43.7588163,"lon":-79.4892207},{"chain":"KFC","address":"500 Rexdale Blvd, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.719399,"lon":-79.5989267},{"chain":"KFC","address":"5401 Steeles Ave W, North York, ON","area":"North York","verified":true,"lat":43.7678852,"lon":-79.5575675},{"chain":"KFC","address":"700 Lawrence Ave W, Toronto, ON","area":"North York","verified":true,"lat":43.7167617,"lon":-79.4471895},{"chain":"McDonald's","address":"109 McCaul St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6536772,"lon":-79.3908145},{"chain":"McDonald's","address":"1890 Avenue Rd, North York, ON","area":"North York","verified":true,"lat":43.7325,"lon":-79.4197913},{"chain":"McDonald's","address":"25 The West Mall, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6105734,"lon":-79.5567264},{"chain":"McDonald's","address":"2625 Weston Rd Unit F, North York, ON","area":"North York","verified":true,"lat":43.7129504,"lon":-79.5336571},{"chain":"McDonald's","address":"3400 Yonge St, Toronto, ON","area":"Toronto","verified":true,"lat":43.7326615,"lon":-79.4045101},{"chain":"McDonald's","address":"4808 Yonge St Unit 6, Toronto, ON","area":"Toronto","verified":true,"lat":43.7618104,"lon":-79.411309},{"chain":"McDonald's","address":"552 Yonge St, Toronto, ON","area":"Toronto","verified":true,"lat":43.664453,"lon":-79.3845229},{"chain":"McDonald's","address":"6170 Bathurst St, Toronto, ON","area":"North York","verified":true,"lat":43.789462,"lon":-79.4464635},{"chain":"McDonald's","address":"808 York Mills Rd Building D Unit 1, North York, ON","area":"North York","verified":true,"lat":43.7537469,"lon":-79.3579037},{"chain":"Pizza Pizza","address":"1045 Albion Rd, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.7365154,"lon":-79.5645333},{"chain":"Pizza Pizza","address":"1080 Wilson Ave, North York, ON","area":"North York","verified":true,"lat":43.72826,"lon":-79.48061},{"chain":"Pizza Pizza","address":"1277 York Mills Rd, North York, ON","area":"North York","verified":true,"lat":43.7603108,"lon":-79.3257773},{"chain":"Pizza Pizza","address":"1393 Lawrence Ave W, North York, ON","area":"North York","verified":true,"lat":43.7085436,"lon":-79.4760231},{"chain":"Pizza Pizza","address":"1937 Weston Rd, Toronto, ON","area":"York","verified":true,"lat":43.7006946,"lon":-79.5175468},{"chain":"Pizza Pizza","address":"330 Wilson Ave, North York, ON","area":"North York","verified":true,"lat":43.73694,"lon":-79.43743},{"chain":"Pizza Pizza","address":"4844 Yonge St, North York, ON","area":"North York","verified":true,"lat":43.7623946,"lon":-79.4115423},{"chain":"Pizza Pizza","address":"558 Bloor St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.6652157,"lon":-79.411422},{"chain":"Pizza Pizza","address":"738 Sheppard Ave E, North York, ON","area":"North York","verified":true,"lat":43.7698542,"lon":-79.3758754},{"chain":"Pizza Pizza","address":"950 St Clair Ave W, Toronto, ON","area":"Toronto","verified":true,"lat":43.6797342,"lon":-79.4359415},{"chain":"Popeyes","address":"1006 Wilson Ave, Toronto, ON","area":"North York","verified":true,"lat":43.72858,"lon":-79.47809},{"chain":"Popeyes","address":"150 Parklawn Rd Unit B, Toronto, ON","area":"Etobicoke","verified":true,"lat":null,"lon":null},{"chain":"Popeyes","address":"1975 Weston Rd, Toronto, ON","area":"York","verified":true,"lat":43.7011423,"lon":-79.5187667},{"chain":"Popeyes","address":"228 Wellington St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.64526,"lon":-79.389693},{"chain":"Popeyes","address":"237 Sheppard Ave E, Toronto, ON","area":"North York","verified":true,"lat":43.7646179,"lon":-79.3962271},{"chain":"Popeyes","address":"267 College St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6577736,"lon":-79.3996819},{"chain":"Popeyes","address":"3317 Dufferin St, Toronto, ON","area":"North York","verified":true,"lat":43.7225397,"lon":-79.4562052},{"chain":"Popeyes","address":"3790 Bathurst St, Toronto, ON","area":"North York","verified":true,"lat":43.73852,"lon":-79.43456},{"chain":"Popeyes","address":"3865 Jane St Unit 31E, Toronto, ON","area":"North York","verified":true,"lat":43.75576,"lon":-79.51662},{"chain":"Popeyes","address":"4841 Yonge St Unit 206, Toronto, ON","area":"North York","verified":true,"lat":43.7623252,"lon":-79.4109546},{"chain":"Popeyes","address":"674-676 Sheppard Ave W, Toronto, ON","area":"North York","verified":true,"lat":43.7354793,"lon":-79.5306274},{"chain":"Subway","address":"1077 Wilson Ave Unit 1, Toronto, ON","area":"North York","verified":true,"lat":43.726564,"lon":-79.4817953},{"chain":"Subway","address":"11 Westmore Dr Unit 1, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.7434244,"lon":-79.6037807},{"chain":"Subway","address":"1115 Lodestar Rd Cru Unit F2 Building F, North York, ON","area":"North York","verified":true,"lat":null,"lon":null},{"chain":"Subway","address":"1530 Albion Rd Unit Fc4, Toronto, ON","area":"Etobicoke","verified":true,"lat":43.7416654,"lon":-79.5845434},{"chain":"Subway","address":"15A Finch Ave W, Toronto, ON","area":"North York","verified":true,"lat":43.77923,"lon":-79.41698},{"chain":"Subway","address":"1604 The Queensway, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6204267,"lon":-79.5457488},{"chain":"Subway","address":"1800 The Queensway Unit 7, Toronto, ON","area":"Etobicoke","verified":true,"lat":43.6158136,"lon":-79.55878},{"chain":"Subway","address":"200 Queens Plate Dr, Toronto, ON","area":"Etobicoke","verified":true,"lat":null,"lon":null},{"chain":"Subway","address":"2140 Kipling Ave Unit 2, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.7189306,"lon":-79.5711294},{"chain":"Subway","address":"2378 Lakeshore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6005796,"lon":-79.5068518},{"chain":"Subway","address":"247 Sheppard Ave E, Toronto, ON","area":"North York","verified":true,"lat":43.7647289,"lon":-79.3957244},{"chain":"Subway","address":"25 Woodbine Downs Blvd Unit 12, Toronto, ON","area":"Etobicoke","verified":true,"lat":43.73545,"lon":-79.60582},{"chain":"Subway","address":"2625 Weston Rd, Toronto, ON","area":"North York","verified":true,"lat":43.7112925,"lon":-79.5349619},{"chain":"Subway","address":"285 Rexdale Blvd, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.7131864,"lon":-79.5801559},{"chain":"Subway","address":"290 The West Mall Unit 15-C, Toronto, ON","area":"Etobicoke","verified":true,"lat":43.6348039,"lon":-79.5626801},{"chain":"Subway","address":"300 Browns Line, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.5991259,"lon":-79.5444492},{"chain":"Subway","address":"3180 Lakeshore Blvd W Unit 5, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6000087,"lon":-79.5078944},{"chain":"Subway","address":"3324 Keele St, Toronto, ON","area":"North York","verified":true,"lat":43.7444905,"lon":-79.4865602},{"chain":"Subway","address":"4841 Yonge St Unit 200A, Toronto, ON","area":"North York","verified":true,"lat":43.762232,"lon":-79.4102442},{"chain":"Subway","address":"500 Rexdale Blvd Unit F008, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.720471,"lon":-79.60057},{"chain":"Subway","address":"5150 Yonge St Unit F3, Toronto, ON","area":"North York","verified":true,"lat":43.7687735,"lon":-79.4119231},{"chain":"Subway","address":"5225 Yonge St Unit 3, Toronto, ON","area":"North York","verified":true,"lat":43.771383,"lon":-79.4131677},{"chain":"Subway","address":"562 Kipling Ave Unit 3, Toronto, ON","area":"Etobicoke","verified":true,"lat":43.614976,"lon":-79.5246724},{"chain":"Subway","address":"6017 Yonge St, North York, ON","area":"North York","verified":true,"lat":43.7892769,"lon":-79.4177067},{"chain":"Subway","address":"6210 Finch Ave W Store 103, Toronto, ON","area":"Etobicoke","verified":true,"lat":null,"lon":null},{"chain":"Subway","address":"6318 Yonge St, Toronto, ON","area":"North York","verified":true,"lat":43.79576,"lon":-79.42319},{"chain":"Subway","address":"708 Wilson Ave, Toronto, ON","area":"North York","verified":true,"lat":43.7318255,"lon":-79.4627603},{"chain":"Tim Hortons","address":"1 Yorkgate Blvd, North York, ON","area":"North York","verified":true,"lat":43.758786,"lon":-79.5195617},{"chain":"Tim Hortons","address":"1305 Lawrence Ave W, Toronto, ON","area":"Toronto","verified":true,"lat":43.7084803,"lon":-79.4735495},{"chain":"Tim Hortons","address":"150 Sherway Dr, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6099866,"lon":-79.5627235},{"chain":"Tim Hortons","address":"1890 Jane St, Toronto, ON","area":"York","verified":true,"lat":43.709512,"lon":-79.506029},{"chain":"Tim Hortons","address":"1931 Weston Rd, York, ON","area":"York","verified":true,"lat":43.70071,"lon":-79.51723},{"chain":"Tim Hortons","address":"200 Sherway Dr, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6091121,"lon":-79.5600715},{"chain":"Tim Hortons","address":"2013 Lawrence Ave W, Toronto, ON","area":"North York","verified":true,"lat":43.700844,"lon":-79.5116016},{"chain":"Tim Hortons","address":"2267 Islington Ave, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.7167008,"lon":-79.5545636},{"chain":"Tim Hortons","address":"2444 Finch Ave W, North York, ON","area":"North York","verified":true,"lat":43.7502,"lon":-79.5529407},{"chain":"Tim Hortons","address":"245 Dixon Rd, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6963147,"lon":-79.5446315},{"chain":"Tim Hortons","address":"25 The West Mall, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6105734,"lon":-79.5567264},{"chain":"Tim Hortons","address":"250 Wincott Dr, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6799452,"lon":-79.5460602},{"chain":"Tim Hortons","address":"2571 St Clair Ave W Unit E1, York, ON","area":"York","verified":true,"lat":43.6677842,"lon":-79.4880531},{"chain":"Tim Hortons","address":"261 Dixon Rd, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6989955,"lon":-79.5380188},{"chain":"Tim Hortons","address":"2625 Weston Rd Unit 1, North York, ON","area":"North York","verified":true,"lat":43.7129504,"lon":-79.5336571},{"chain":"Tim Hortons","address":"2688 Dundas St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.66485,"lon":-79.4589},{"chain":"Tim Hortons","address":"28 Downes St, Toronto, ON","area":"Toronto","verified":true,"lat":43.64343,"lon":-79.37422},{"chain":"Tim Hortons","address":"30 Bond St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6536408,"lon":-79.3778068},{"chain":"Tim Hortons","address":"3514 Weston Rd, North York, ON","area":"North York","verified":true,"lat":43.7522185,"lon":-79.5425914},{"chain":"Tim Hortons","address":"36 Queen St, Toronto, ON","area":"Toronto","verified":true,"lat":43.65312,"lon":-79.37763},{"chain":"Tim Hortons","address":"4000 Jane St, North York, ON","area":"North York","verified":true,"lat":43.7575693,"lon":-79.5188646},{"chain":"Tim Hortons","address":"550 St Clair Ave W, York, ON","area":"York","verified":true,"lat":43.668665,"lon":-79.4849868},{"chain":"Tim Hortons","address":"553 Lakeshore Rd W, Toronto, ON","area":"Toronto","verified":true,"lat":null,"lon":null},{"chain":"Tim Hortons","address":"595 Bay St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6563768,"lon":-79.3829722},{"chain":"Tim Hortons","address":"65 Front St, Toronto, ON","area":"Toronto","verified":true,"lat":43.6441907,"lon":-79.381594},{"chain":"Tim Hortons","address":"660 Evans Ave, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6100535,"lon":-79.5531091},{"chain":"Tim Hortons","address":"866 Avenue Rd, Toronto, ON","area":"Toronto","verified":true,"lat":43.6984222,"lon":-79.4064701},{"chain":"Tim Hortons","address":"878 Eglinton Ave E, Toronto, ON","area":"East York","verified":true,"lat":43.7136441,"lon":-79.3650758},{"chain":"Tim Hortons","address":"900 Dufferin St Unit 0565, Toronto, ON","area":"Toronto","verified":true,"lat":43.65598,"lon":-79.4357279},{"chain":"Tim Hortons","address":"900 Eglinton Ave W, Toronto, ON","area":"Toronto","verified":true,"lat":43.7007238,"lon":-79.4274774},{"chain":"Tim Hortons","address":"900 St Clair Ave W, Toronto, ON","area":"Toronto","verified":true,"lat":43.6802374,"lon":-79.4335153},{"chain":"Tim Hortons","address":"91 Danforth Ave, Toronto, ON","area":"Toronto","verified":true,"lat":43.67612,"lon":-79.35847},{"chain":"Wendy's","address":"1002 Lawrence Ave W, North York, ON","area":"North York","verified":true,"lat":43.7130162,"lon":-79.4613383},{"chain":"Wendy's","address":"1682 Jane St, York, ON","area":"York","verified":true,"lat":43.7025935,"lon":-79.5039227},{"chain":"Wendy's","address":"1927 Weston Rd, York, ON","area":"York","verified":true,"lat":43.70068,"lon":-79.51712},{"chain":"Wendy's","address":"2013 Lawrence Ave W, Toronto, ON","area":"North York","verified":true,"lat":43.700844,"lon":-79.5116016},{"chain":"Wendy's","address":"2136 Kipling Ave, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.7187549,"lon":-79.570615},{"chain":"Wendy's","address":"2151 Steeles Ave W, Toronto, ON","area":"North York","verified":true,"lat":43.785859,"lon":-79.4750577},{"chain":"Wendy's","address":"2277 Sheppard Ave W Unit A1, Toronto, ON","area":"North York","verified":true,"lat":43.734822,"lon":-79.5324364},{"chain":"Wendy's","address":"2575 St Clair Ave W Unit 1, Toronto, ON","area":"Toronto","verified":true,"lat":43.66765,"lon":-79.48849},{"chain":"Wendy's","address":"4700 Keele St, Toronto, ON","area":"North York","verified":true,"lat":43.7741755,"lon":-79.504749},{"chain":"Wendy's","address":"482 Queen St W, Toronto, ON","area":"Toronto","verified":true,"lat":43.6480367,"lon":-79.4004102},{"chain":"Wendy's","address":"5095 Yonge St, North York, ON","area":"North York","verified":true,"lat":43.7688653,"lon":-79.4121014},{"chain":"Wendy's","address":"5250 Dundas St W, Etobicoke, ON","area":"Etobicoke","verified":true,"lat":43.6383505,"lon":-79.5389399},{"chain":"Wendy's","address":"6464 Yonge St, Toronto, ON","area":"North York","verified":true,"lat":43.7957017,"lon":-79.4229127},{"chain":"Wendy's","address":"865 York Mills Rd Unit 11, Toronto, ON","area":"North York","verified":true,"lat":43.7541286,"lon":-79.349485},{"chain":"A&W","address":"1 University Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.6458144,"lon":-79.3831914},{"chain":"A&W","address":"10 Dundas St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6570352,"lon":-79.3804596},{"chain":"A&W","address":"100 King St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6487681,"lon":-79.3816921},{"chain":"A&W","address":"100 Princes' Blvd, Toronto, ON","area":"Toronto","verified":false,"lat":43.6353558,"lon":-79.4132369},{"chain":"A&W","address":"1000 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.7002798,"lon":-79.4296339},{"chain":"A&W","address":"1000 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7689352,"lon":-79.4690715},{"chain":"A&W","address":"101 Yorkville Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.67054,"lon":-79.39231},{"chain":"A&W","address":"1050 Don Mills Rd, Toronto, ON","area":"North York","verified":false,"lat":43.73398,"lon":-79.34373},{"chain":"A&W","address":"1100 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7685429,"lon":-79.4733322},{"chain":"A&W","address":"1100 Sheppard Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.7711658,"lon":-79.3699058},{"chain":"A&W","address":"1200 Bay St, Toronto, ON","area":"Toronto","verified":false,"lat":43.669939,"lon":-79.3898656},{"chain":"A&W","address":"1200 St. Clair Ave W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6778012,"lon":-79.4444415},{"chain":"A&W","address":"130 Front St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6456854,"lon":-79.3808003},{"chain":"A&W","address":"1315 Lawrence Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.740569,"lon":-79.3232407},{"chain":"A&W","address":"1460 Dufferin St, Toronto, ON","area":"Toronto","verified":false,"lat":43.67188,"lon":-79.44077},{"chain":"A&W","address":"147 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.651491,"lon":-79.3787724},{"chain":"A&W","address":"1500 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6491165,"lon":-79.5035588},{"chain":"A&W","address":"1500 Royal York Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6920025,"lon":-79.5323728},{"chain":"A&W","address":"1500 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6190001,"lon":-79.5360743},{"chain":"A&W","address":"1530 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.69774,"lon":-79.44154},{"chain":"A&W","address":"160 Bloor St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6716393,"lon":-79.3829647},{"chain":"A&W","address":"1600 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.69738,"lon":-79.44348},{"chain":"A&W","address":"165 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6521311,"lon":-79.379012},{"chain":"A&W","address":"170 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6691342,"lon":-79.3947225},{"chain":"A&W","address":"170 N Queen St, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6189285,"lon":-79.5567556},{"chain":"A&W","address":"1700 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.69681,"lon":-79.44632},{"chain":"A&W","address":"180 Bloor St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6721244,"lon":-79.3732164},{"chain":"A&W","address":"1800 Weston Rd, Toronto, ON","area":"York","verified":false,"lat":43.6988716,"lon":-79.5130769},{"chain":"A&W","address":"181 Bay St, Toronto, ON","area":"Toronto","verified":false,"lat":43.647176,"lon":-79.3782977},{"chain":"A&W","address":"1900 Sheppard Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.7757457,"lon":-79.3357495},{"chain":"A&W","address":"20 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.640845,"lon":-79.5397173},{"chain":"A&W","address":"2197 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.7126564,"lon":-79.3996001},{"chain":"A&W","address":"220 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6533085,"lon":-79.3806572},{"chain":"A&W","address":"2200 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.6928606,"lon":-79.4629273},{"chain":"A&W","address":"2200 Islington Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.708431,"lon":-79.5577589},{"chain":"A&W","address":"245 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.65488,"lon":-79.37993},{"chain":"A&W","address":"25 King St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6486463,"lon":-79.3790501},{"chain":"A&W","address":"250 Consumers Rd, Toronto, ON","area":"North York","verified":false,"lat":43.7705333,"lon":-79.3302293},{"chain":"A&W","address":"250 Dundas St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6546335,"lon":-79.3900285},{"chain":"A&W","address":"250 Wellington St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6452451,"lon":-79.3903639},{"chain":"A&W","address":"250 Wincott Dr, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6799452,"lon":-79.5460602},{"chain":"A&W","address":"2550 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.74902,"lon":-79.56037},{"chain":"A&W","address":"2625 Weston Rd, Toronto, ON","area":"York","verified":false,"lat":43.7112925,"lon":-79.5349619},{"chain":"A&W","address":"263 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6501813,"lon":-79.3891778},{"chain":"A&W","address":"3020 Bayview Ave, Toronto, ON","area":"North York","verified":false,"lat":43.77545,"lon":-79.39039},{"chain":"A&W","address":"3257 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.7206,"lon":-79.45574},{"chain":"A&W","address":"33 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6475604,"lon":-79.3769937},{"chain":"A&W","address":"3390 Keele St, Toronto, ON","area":"North York","verified":false,"lat":43.7468539,"lon":-79.4884701},{"chain":"A&W","address":"355 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.658054,"lon":-79.381513},{"chain":"A&W","address":"3550 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6304977,"lon":-79.4201951},{"chain":"A&W","address":"3801 Bathurst St, Toronto, ON","area":"North York","verified":false,"lat":43.73892,"lon":-79.43405},{"chain":"A&W","address":"400 University Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.6535316,"lon":-79.3883612},{"chain":"A&W","address":"440 Brown's Line, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6019476,"lon":-79.5457419},{"chain":"A&W","address":"444 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.660509,"lon":-79.383427},{"chain":"A&W","address":"4750 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.7777244,"lon":-79.4692474},{"chain":"A&W","address":"477 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6855603,"lon":-79.3930437},{"chain":"A&W","address":"501 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6634346,"lon":-79.3835319},{"chain":"A&W","address":"505 University Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.6558144,"lon":-79.3880322},{"chain":"A&W","address":"55 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6696714,"lon":-79.3887524},{"chain":"A&W","address":"550 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6475335,"lon":-79.4029384},{"chain":"A&W","address":"555 Rexdale Blvd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7150801,"lon":-79.6040694},{"chain":"A&W","address":"60 Carlton St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6619506,"lon":-79.3799373},{"chain":"A&W","address":"6200 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7936356,"lon":-79.4191464},{"chain":"A&W","address":"655 Bay St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6578499,"lon":-79.3838249},{"chain":"A&W","address":"660 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6670116,"lon":-79.3856175},{"chain":"A&W","address":"770 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.669762,"lon":-79.386706},{"chain":"A&W","address":"777 Bay St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6605608,"lon":-79.3845989},{"chain":"A&W","address":"890 Wilson Ave, Toronto, ON","area":"North York","verified":false,"lat":43.73047,"lon":-79.46882},{"chain":"A&W","address":"900 Dufferin St, Toronto, ON","area":"Toronto","verified":false,"lat":43.65598,"lon":-79.4357279},{"chain":"Burger King","address":"10 Dundas St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6570352,"lon":-79.3804596},{"chain":"Burger King","address":"100 King St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6487681,"lon":-79.3816921},{"chain":"Burger King","address":"1000 Sheppard Ave W, North York, ON","area":"North York","verified":false,"lat":43.7511407,"lon":-79.4598405},{"chain":"Burger King","address":"1100 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7685429,"lon":-79.4733322},{"chain":"Burger King","address":"1200 Bay St, Toronto, ON","area":"Toronto","verified":false,"lat":43.669939,"lon":-79.3898656},{"chain":"Burger King","address":"1200 Sheppard Ave E, North York, ON","area":"North York","verified":false,"lat":43.7717573,"lon":-79.3671454},{"chain":"Burger King","address":"125 The Queensway, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6302604,"lon":-79.4830636},{"chain":"Burger King","address":"1350 Dufferin St, Toronto, ON","area":"York","verified":false,"lat":43.6359782,"lon":-79.4262184},{"chain":"Burger King","address":"150 Laird Dr, Toronto, ON","area":"Toronto","verified":false,"lat":43.7085525,"lon":-79.3629761},{"chain":"Burger King","address":"150 Park Lawn Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6279349,"lon":-79.4893247},{"chain":"Burger King","address":"1500 Bathurst St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6842306,"lon":-79.4190539},{"chain":"Burger King","address":"1530 Albion Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7417698,"lon":-79.5829739},{"chain":"Burger King","address":"1550 Don Mills Rd, North York, ON","area":"North York","verified":false,"lat":43.7371958,"lon":-79.3433446},{"chain":"Burger King","address":"160 Bloor St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6716393,"lon":-79.3829647},{"chain":"Burger King","address":"1700 Wilson Ave, North York, ON","area":"North York","verified":false,"lat":43.7205731,"lon":-79.5109349},{"chain":"Burger King","address":"175 Rexdale Blvd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7107,"lon":-79.57046},{"chain":"Burger King","address":"1750 Finch Ave E, North York, ON","area":"North York","verified":false,"lat":43.7937915,"lon":-79.3503082},{"chain":"Burger King","address":"185 The West Mall, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6249419,"lon":-79.5581878},{"chain":"Burger King","address":"200 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.65048,"lon":-79.38889},{"chain":"Burger King","address":"200 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.65292,"lon":-79.37978},{"chain":"Burger King","address":"2008 Eglinton Ave W, York, ON","area":"York","verified":false,"lat":43.6881107,"lon":-79.4842455},{"chain":"Burger King","address":"2130 Keele St, Toronto, ON","area":"York","verified":false,"lat":43.6999009,"lon":-79.4762497},{"chain":"Burger King","address":"2300 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.7070051,"lon":-79.398796},{"chain":"Burger King","address":"245 Dixon Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6963147,"lon":-79.5446315},{"chain":"Burger King","address":"250 Front St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6443796,"lon":-79.387498},{"chain":"Burger King","address":"250 Lawrence Ave W, North York, ON","area":"North York","verified":false,"lat":43.7227004,"lon":-79.4141922},{"chain":"Burger King","address":"250 The East Mall, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6317115,"lon":-79.555369},{"chain":"Burger King","address":"2625 Weston Rd, Toronto, ON","area":"York","verified":false,"lat":43.7112925,"lon":-79.5349619},{"chain":"Burger King","address":"277 Front St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.64389,"lon":-79.38774},{"chain":"Burger King","address":"2930 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7546203,"lon":-79.5294232},{"chain":"Burger King","address":"3003 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6000053,"lon":-79.507708},{"chain":"Burger King","address":"320 Queen St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6555466,"lon":-79.3652863},{"chain":"Burger King","address":"3439 Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6404626,"lon":-79.5413649},{"chain":"Burger King","address":"398 Rexdale Blvd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7197783,"lon":-79.6058306},{"chain":"Burger King","address":"4500 Dufferin St, North York, ON","area":"North York","verified":false,"lat":43.7674969,"lon":-79.4668039},{"chain":"Burger King","address":"484 Spadina Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.65829,"lon":-79.40075},{"chain":"Burger King","address":"5000 Yonge St, North York, ON","area":"North York","verified":false,"lat":43.7662213,"lon":-79.4128711},{"chain":"Burger King","address":"5445 Eglinton Ave W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.651405,"lon":-79.6033508},{"chain":"Burger King","address":"55 Eglinton Ave E, Toronto, ON","area":"Toronto","verified":false,"lat":43.7069019,"lon":-79.3960427},{"chain":"Burger King","address":"600 Bay St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6560153,"lon":-79.3840107},{"chain":"Burger King","address":"6000 Bathurst St, North York, ON","area":"North York","verified":false,"lat":43.7852825,"lon":-79.4467042},{"chain":"Burger King","address":"689 St Clair Ave W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6814638,"lon":-79.4259149},{"chain":"Burger King","address":"730 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.668848,"lon":-79.3870085},{"chain":"Burger King","address":"750 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7492053,"lon":-79.5554427},{"chain":"Burger King","address":"890 Don Mills Rd, North York, ON","area":"North York","verified":false,"lat":43.72551,"lon":-79.34155},{"chain":"Burger King","address":"939 Eglinton Ave E, North York, ON","area":"North York","verified":false,"lat":43.725515,"lon":-79.3093447},{"chain":"Domino's","address":"1060 Wilson Ave","area":"North York","verified":false,"lat":43.7283719,"lon":-79.479819},{"chain":"Domino's","address":"1062 Bloor St W","area":"Toronto","verified":false,"lat":43.66073,"lon":-79.43285},{"chain":"Domino's","address":"1090 St Clair Ave W","area":"Toronto","verified":false,"lat":43.67884,"lon":-79.44026},{"chain":"Domino's","address":"1110 Sheppard Ave E","area":"North York","verified":false,"lat":43.7713412,"lon":-79.3690255},{"chain":"Domino's","address":"1300 Finch Ave W","area":"North York","verified":false,"lat":43.7648865,"lon":-79.4900026},{"chain":"Domino's","address":"1448 Lawrence Ave W","area":"North York","verified":false,"lat":43.7084817,"lon":-79.478928},{"chain":"Domino's","address":"15 Fort York Blvd","area":"Toronto","verified":false,"lat":43.64004,"lon":-79.393893},{"chain":"Domino's","address":"1500 Royal York Rd","area":"Etobicoke","verified":false,"lat":43.691248,"lon":-79.5312174},{"chain":"Domino's","address":"1535 Jane St","area":"North York","verified":false,"lat":null,"lon":null},{"chain":"Domino's","address":"1600 Wilson Ave","area":"North York","verified":false,"lat":43.7208966,"lon":-79.5098932},{"chain":"Domino's","address":"1602 Bayview Ave","area":"Toronto","verified":false,"lat":43.70601,"lon":-79.37566},{"chain":"Domino's","address":"1695 Jane St","area":"York","verified":false,"lat":43.70356,"lon":-79.50365},{"chain":"Domino's","address":"170 N Queen St","area":"Etobicoke","verified":false,"lat":43.6189285,"lon":-79.5567556},{"chain":"Domino's","address":"1719 Avenue Rd","area":"North York","verified":false,"lat":43.72841,"lon":-79.41785},{"chain":"Domino's","address":"1735 Kipling Ave","area":"Etobicoke","verified":false,"lat":43.6931141,"lon":-79.5579142},{"chain":"Domino's","address":"1864 Eglinton Ave W","area":"York","verified":false,"lat":43.7031862,"lon":-79.4152023},{"chain":"Domino's","address":"1881 Queen St E","area":"Toronto","verified":false,"lat":43.6686712,"lon":-79.3054814},{"chain":"Domino's","address":"1971 Finch Ave W","area":"North York","verified":false,"lat":43.75617,"lon":-79.51863},{"chain":"Domino's","address":"1995 Kipling Ave","area":"Etobicoke","verified":false,"lat":43.7101627,"lon":-79.5653925},{"chain":"Domino's","address":"2055 Weston Rd","area":"York","verified":false,"lat":43.7017367,"lon":-79.5215807},{"chain":"Domino's","address":"235 Dixon Rd","area":"Etobicoke","verified":false,"lat":43.6966373,"lon":-79.5437768},{"chain":"Domino's","address":"2435 Finch Ave W","area":"North York","verified":false,"lat":43.7500745,"lon":-79.5492528},{"chain":"Domino's","address":"2453 Yonge St","area":"Toronto","verified":false,"lat":43.7112702,"lon":-79.3990987},{"chain":"Domino's","address":"256 Wincott Dr","area":"Etobicoke","verified":false,"lat":43.6792103,"lon":-79.5452867},{"chain":"Domino's","address":"2574 Eglinton Ave W","area":"York","verified":false,"lat":43.69088,"lon":-79.47284},{"chain":"Domino's","address":"2853 Jane St","area":"North York","verified":false,"lat":43.75167,"lon":-79.51536},{"chain":"Domino's","address":"2901 Bayview Ave","area":"North York","verified":false,"lat":43.7689342,"lon":-79.38564},{"chain":"Domino's","address":"2928 Dundas St W","area":"Toronto","verified":false,"lat":43.6655579,"lon":-79.4671742},{"chain":"Domino's","address":"2970 Lake Shore Blvd W","area":"Etobicoke","verified":false,"lat":43.6007434,"lon":-79.5062083},{"chain":"Domino's","address":"312A Wilson Ave","area":"North York","verified":false,"lat":43.73718,"lon":-79.43593},{"chain":"Domino's","address":"325 Parliament St","area":"Toronto","verified":false,"lat":43.6596388,"lon":-79.365897},{"chain":"Domino's","address":"3392 Bloor St W","area":"Etobicoke","verified":false,"lat":43.6536082,"lon":-79.4650192},{"chain":"Domino's","address":"3448 Keele St","area":"North York","verified":false,"lat":43.750234,"lon":-79.4879154},{"chain":"Domino's","address":"3580 Dufferin St","area":"North York","verified":false,"lat":43.73043,"lon":-79.45892},{"chain":"Domino's","address":"3701 Lake Shore Blvd W","area":"Etobicoke","verified":false,"lat":43.5930628,"lon":-79.538409},{"chain":"Domino's","address":"392 Spadina Ave","area":"Toronto","verified":false,"lat":43.6555311,"lon":-79.3994092},{"chain":"Domino's","address":"3930 Keele St","area":"North York","verified":false,"lat":43.7621356,"lon":-79.490869},{"chain":"Domino's","address":"3995 Bloor St W","area":"Etobicoke","verified":false,"lat":43.6376419,"lon":-79.5527118},{"chain":"Domino's","address":"424 Yonge St","area":"Toronto","verified":false,"lat":43.6601048,"lon":-79.3831383},{"chain":"Domino's","address":"445 Eglinton Ave W","area":"Toronto","verified":false,"lat":43.7028831,"lon":-79.4165786},{"chain":"Domino's","address":"4724 Yonge St","area":"North York","verified":false,"lat":null,"lon":null},{"chain":"Domino's","address":"5095 Yonge St","area":"North York","verified":false,"lat":43.7685218,"lon":-79.4120825},{"chain":"Domino's","address":"523 St Clair Ave W","area":"Toronto","verified":false,"lat":43.6827033,"lon":-79.4192578},{"chain":"Domino's","address":"5555 Eglinton Ave W","area":"Etobicoke","verified":false,"lat":43.6506202,"lon":-79.6028782},{"chain":"Domino's","address":"558 College St","area":"Toronto","verified":false,"lat":43.6557112,"lon":-79.4122067},{"chain":"Domino's","address":"5858 Yonge St","area":"North York","verified":false,"lat":43.78539,"lon":-79.41804},{"chain":"Domino's","address":"626 Sheppard Ave W","area":"North York","verified":false,"lat":43.755711,"lon":-79.4404283},{"chain":"Domino's","address":"643 Yonge St","area":"Toronto","verified":false,"lat":43.66785,"lon":-79.3855},{"chain":"Domino's","address":"694 Queen St W","area":"Toronto","verified":false,"lat":43.6464797,"lon":-79.4081524},{"chain":"Domino's","address":"761 King St W","area":"Toronto","verified":false,"lat":43.6429894,"lon":-79.4058001},{"chain":"Domino's","address":"812 Bloor St W","area":"Toronto","verified":false,"lat":43.6627309,"lon":-79.4227208},{"chain":"Domino's","address":"890 Don Mills Rd","area":"North York","verified":false,"lat":43.72551,"lon":-79.34155},{"chain":"Domino's","address":"941 Danforth Ave","area":"Toronto","verified":false,"lat":null,"lon":null},{"chain":"Harvey's","address":"10 Dundas St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6570352,"lon":-79.3804596},{"chain":"Harvey's","address":"1000 Eglinton Ave E, North York, ON","area":"North York","verified":false,"lat":43.725515,"lon":-79.3093447},{"chain":"Harvey's","address":"1000 Steeles Ave W, North York, ON","area":"North York","verified":false,"lat":43.7764277,"lon":-79.5165163},{"chain":"Harvey's","address":"1010 Don Mills Rd, North York, ON","area":"North York","verified":false,"lat":43.7337262,"lon":-79.3428067},{"chain":"Harvey's","address":"1200 Bay St, Toronto, ON","area":"Toronto","verified":false,"lat":43.669939,"lon":-79.3898656},{"chain":"Harvey's","address":"1200 Lawrence Ave E, North York, ON","area":"North York","verified":false,"lat":43.7263801,"lon":-79.312867},{"chain":"Harvey's","address":"1235 Dupont St, Toronto, ON","area":"York","verified":false,"lat":43.66805,"lon":-79.4411},{"chain":"Harvey's","address":"1255 The Queensway, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6197685,"lon":-79.5233055},{"chain":"Harvey's","address":"1300 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7648865,"lon":-79.4900026},{"chain":"Harvey's","address":"135 Yorkville Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.6703597,"lon":-79.394237},{"chain":"Harvey's","address":"1502 Dundas St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.64981,"lon":-79.43225},{"chain":"Harvey's","address":"165 Front St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.644779,"lon":-79.384463},{"chain":"Harvey's","address":"1800 Sheppard Ave E, North York, ON","area":"North York","verified":false,"lat":43.7778569,"lon":-79.3437784},{"chain":"Harvey's","address":"200 Queens Quay W, Toronto, ON","area":"Toronto","verified":false,"lat":43.64048,"lon":-79.38174},{"chain":"Harvey's","address":"2000 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7546203,"lon":-79.5294232},{"chain":"Harvey's","address":"2358 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6501725,"lon":-79.4813482},{"chain":"Harvey's","address":"259 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6502077,"lon":-79.3890548},{"chain":"Harvey's","address":"2625 Weston Rd, Toronto, ON","area":"York","verified":false,"lat":43.7112925,"lon":-79.5349619},{"chain":"Harvey's","address":"2635 Islington Ave, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7379721,"lon":-79.5651925},{"chain":"Harvey's","address":"275 Front St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6441462,"lon":-79.3874742},{"chain":"Harvey's","address":"2930 Finch Ave E, North York, ON","area":"North York","verified":false,"lat":43.7937894,"lon":-79.3500641},{"chain":"Harvey's","address":"2993 Dufferin St, Toronto, ON","area":"York","verified":false,"lat":43.6337458,"lon":-79.4253612},{"chain":"Harvey's","address":"3300 Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6454405,"lon":-79.521771},{"chain":"Harvey's","address":"3900 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.5977258,"lon":-79.5191468},{"chain":"Harvey's","address":"3970 Keele St, North York, ON","area":"North York","verified":false,"lat":43.779574,"lon":-79.4942611},{"chain":"Harvey's","address":"509 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6634578,"lon":-79.3836957},{"chain":"Harvey's","address":"555 Burnhamthorpe Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6448839,"lon":-79.5679094},{"chain":"Harvey's","address":"5775 Yonge St, North York, ON","area":"North York","verified":false,"lat":43.7833314,"lon":-79.4159562},{"chain":"Harvey's","address":"60 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.670117,"lon":-79.389158},{"chain":"Harvey's","address":"600 Dixon Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6923854,"lon":-79.5728994},{"chain":"Harvey's","address":"761 St Clair Ave W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6810162,"lon":-79.4283429},{"chain":"KFC","address":"120 Eglinton Ave E, Toronto, ON","area":"Toronto","verified":false,"lat":43.7077005,"lon":-79.3949386},{"chain":"KFC","address":"1315 Lawrence Ave E, North York, ON","area":"North York","verified":false,"lat":43.740569,"lon":-79.3232407},{"chain":"KFC","address":"1500 Finch Ave E, North York, ON","area":"North York","verified":false,"lat":43.7934217,"lon":-79.3543554},{"chain":"KFC","address":"1500 St Clair Ave W, York, ON","area":"York","verified":false,"lat":43.6682267,"lon":-79.4869455},{"chain":"KFC","address":"1530 Eglinton Ave W, York, ON","area":"York","verified":false,"lat":43.69774,"lon":-79.44154},{"chain":"KFC","address":"1810 Wilson Ave, North York, ON","area":"North York","verified":false,"lat":43.7188303,"lon":-79.5186995},{"chain":"KFC","address":"1957 Leslie St, North York, ON","area":"North York","verified":false,"lat":43.7582711,"lon":-79.3609755},{"chain":"KFC","address":"1969 Gerrard St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6809024,"lon":-79.3101781},{"chain":"KFC","address":"200 Front St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6449605,"lon":-79.3858597},{"chain":"KFC","address":"2300 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.7070051,"lon":-79.398796},{"chain":"KFC","address":"2404 Danforth Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.68755,"lon":-79.30556},{"chain":"KFC","address":"2625 Weston Rd, North York, ON","area":"North York","verified":false,"lat":43.7129504,"lon":-79.5336571},{"chain":"KFC","address":"2950 Dufferin St, North York, ON","area":"North York","verified":false,"lat":43.70945,"lon":-79.45415},{"chain":"KFC","address":"2969 Islington Ave, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6437447,"lon":-79.52303},{"chain":"KFC","address":"3003 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6000053,"lon":-79.507708},{"chain":"KFC","address":"3019 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7474128,"lon":-79.5630882},{"chain":"KFC","address":"309 Spadina Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.6537956,"lon":-79.3979344},{"chain":"KFC","address":"3401 Bathurst St, North York, ON","area":"North York","verified":false,"lat":43.7198278,"lon":-79.429964},{"chain":"KFC","address":"3433 Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6470659,"lon":-79.5129378},{"chain":"KFC","address":"400 The East Mall, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6464672,"lon":-79.5602675},{"chain":"KFC","address":"5065 Dundas St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6316042,"lon":-79.5457881},{"chain":"KFC","address":"5095 Yonge St, North York, ON","area":"North York","verified":false,"lat":43.7688653,"lon":-79.4121014},{"chain":"KFC","address":"525 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6654241,"lon":-79.4091785},{"chain":"KFC","address":"555 Rexdale Blvd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7150801,"lon":-79.6040694},{"chain":"KFC","address":"600 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6471968,"lon":-79.4046266},{"chain":"McDonald's","address":"1 Toronto St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6500119,"lon":-79.3756801},{"chain":"McDonald's","address":"10 Dundas St E, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6570352,"lon":-79.3804596},{"chain":"McDonald's","address":"10 Spadina Ave, Toronto, ON","area":"Downtown West","verified":false,"lat":43.64309,"lon":-79.39438},{"chain":"McDonald's","address":"10 York St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6412138,"lon":-79.3811625},{"chain":"McDonald's","address":"1000 Brown's Line, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6002354,"lon":-79.5445685},{"chain":"McDonald's","address":"1000 Eglinton Ave W, Toronto, ON","area":"Central West Toronto","verified":false,"lat":43.7002798,"lon":-79.4296339},{"chain":"McDonald's","address":"1010 Sheppard Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7510012,"lon":-79.4604805},{"chain":"McDonald's","address":"1015 Finch Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.7951001,"lon":-79.3433481},{"chain":"McDonald's","address":"1022 Bathurst St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6996225,"lon":-79.4249966},{"chain":"McDonald's","address":"1090 Queen St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6437297,"lon":-79.4223001},{"chain":"McDonald's","address":"1090 Sheppard Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.7905556,"lon":-79.2544101},{"chain":"McDonald's","address":"1100 Dufferin St, Toronto, ON","area":"West Toronto","verified":false,"lat":43.662,"lon":-79.43649},{"chain":"McDonald's","address":"1100 Lawrence Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.719247,"lon":-79.430141},{"chain":"McDonald's","address":"1100 Sheppard Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7519258,"lon":-79.4668858},{"chain":"McDonald's","address":"1100 Wilson Ave, Toronto, ON","area":"North York","verified":false,"lat":43.7266939,"lon":-79.4824208},{"chain":"McDonald's","address":"1168 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.68719,"lon":-79.49053},{"chain":"McDonald's","address":"118 Bremner Blvd, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6409975,"lon":-79.3874544},{"chain":"McDonald's","address":"120 Dundas St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.65583,"lon":-79.38445},{"chain":"McDonald's","address":"1200 Bloor St W, Toronto, ON","area":"Central West Toronto","verified":false,"lat":43.6594153,"lon":-79.4381822},{"chain":"McDonald's","address":"1200 Lawrence Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7116263,"lon":-79.4668685},{"chain":"McDonald's","address":"1205 Eglinton Ave W, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.6928606,"lon":-79.4629273},{"chain":"McDonald's","address":"1275 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7640403,"lon":-79.4872664},{"chain":"McDonald's","address":"1300 St Clair Ave W, Toronto, ON","area":"York","verified":false,"lat":43.6769539,"lon":-79.4482072},{"chain":"McDonald's","address":"1301 Albion Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7469562,"lon":-79.6220889},{"chain":"McDonald's","address":"1395 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7355946,"lon":-79.5971001},{"chain":"McDonald's","address":"1470 Dufferin St, Toronto, ON","area":"York","verified":false,"lat":43.67234,"lon":-79.44098},{"chain":"McDonald's","address":"1500 Bathurst St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6842306,"lon":-79.4190539},{"chain":"McDonald's","address":"1500 Don Mills Rd, Toronto, ON","area":"North York","verified":false,"lat":43.755061,"lon":-79.3477486},{"chain":"McDonald's","address":"1500 Dundas St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6498,"lon":-79.43217},{"chain":"McDonald's","address":"1500 Eglinton Ave W, Toronto, ON","area":"Central West Toronto","verified":false,"lat":43.6980225,"lon":-79.4406671},{"chain":"McDonald's","address":"1500 Lawrence Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7076,"lon":-79.48323},{"chain":"McDonald's","address":"1540 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6564549,"lon":-79.452709},{"chain":"McDonald's","address":"1540 Jane St, Toronto, ON","area":"North York","verified":false,"lat":43.7286365,"lon":-79.5105422},{"chain":"McDonald's","address":"1550 Queen St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6401993,"lon":-79.4399114},{"chain":"McDonald's","address":"1555 Highway 27, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7233059,"lon":-79.5984134},{"chain":"McDonald's","address":"1565 Eglinton Ave W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.69721,"lon":-79.4422},{"chain":"McDonald's","address":"1565 Steeles Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7903118,"lon":-79.4554451},{"chain":"McDonald's","address":"1650 St Clair Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.67504,"lon":-79.45747},{"chain":"McDonald's","address":"1700 Finch Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.7940015,"lon":-79.351309},{"chain":"McDonald's","address":"1700 Lawrence Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.779522,"lon":-79.136965},{"chain":"McDonald's","address":"175 Yonge St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.652647,"lon":-79.3792152},{"chain":"McDonald's","address":"1750 Martin Grove Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.6952463,"lon":-79.5724588},{"chain":"McDonald's","address":"1800 Steeles Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7977875,"lon":-79.4212114},{"chain":"McDonald's","address":"181 Bay St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.647176,"lon":-79.3782977},{"chain":"McDonald's","address":"1900 Dundas St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6512465,"lon":-79.4435993},{"chain":"McDonald's","address":"1900 Weston Rd, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6832805,"lon":-79.4803255},{"chain":"McDonald's","address":"1919 Jane St, Toronto, ON","area":"York","verified":false,"lat":43.7286365,"lon":-79.5105422},{"chain":"McDonald's","address":"20 Dundas St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6563242,"lon":-79.3815691},{"chain":"McDonald's","address":"200 Bay St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6463615,"lon":-79.3797549},{"chain":"McDonald's","address":"200 Queens Quay W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.64048,"lon":-79.38174},{"chain":"McDonald's","address":"2000 Leslie St, Toronto, ON","area":"North York","verified":false,"lat":43.7904145,"lon":-79.3680795},{"chain":"McDonald's","address":"2000 Sheppard Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.7751942,"lon":-79.3309499},{"chain":"McDonald's","address":"2100 Bathurst St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7037745,"lon":-79.4263879},{"chain":"McDonald's","address":"2130 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6521023,"lon":-79.4724675},{"chain":"McDonald's","address":"2200 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7431284,"lon":-79.5876165},{"chain":"McDonald's","address":"2200 Keele St, Toronto, ON","area":"West Toronto","verified":false,"lat":43.7009576,"lon":-79.4764996},{"chain":"McDonald's","address":"2200 St Clair Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.67058,"lon":-79.4774},{"chain":"McDonald's","address":"222 Roncesvalles Ave, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6390938,"lon":-79.4462187},{"chain":"McDonald's","address":"2250 Lawrence Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.69765,"lon":-79.527},{"chain":"McDonald's","address":"2335 Dundas St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6559596,"lon":-79.4525322},{"chain":"McDonald's","address":"2360 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6501762,"lon":-79.4814303},{"chain":"McDonald's","address":"2425 Lawrence Ave W, Toronto, ON","area":"Weston","verified":false,"lat":43.7175952,"lon":-79.4372144},{"chain":"McDonald's","address":"2450 Dufferin St, Toronto, ON","area":"Central West Toronto","verified":false,"lat":43.69845,"lon":-79.4516},{"chain":"McDonald's","address":"25 The West Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6118845,"lon":-79.557785},{"chain":"McDonald's","address":"250 The East Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6317115,"lon":-79.555369},{"chain":"McDonald's","address":"250 University Ave, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6503563,"lon":-79.3869845},{"chain":"McDonald's","address":"2500 Bathurst St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.705801,"lon":-79.4269008},{"chain":"McDonald's","address":"2500 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7355946,"lon":-79.5971001},{"chain":"McDonald's","address":"2500 Wilson Ave, Toronto, ON","area":"North York","verified":false,"lat":43.7331069,"lon":-79.454361},{"chain":"McDonald's","address":"2625 Weston Rd, Toronto, ON","area":"North York","verified":false,"lat":43.7112925,"lon":-79.5349619},{"chain":"McDonald's","address":"270 College St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6595535,"lon":-79.3918354},{"chain":"McDonald's","address":"270 The Kingsway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.661804,"lon":-79.5198447},{"chain":"McDonald's","address":"271 Rexdale Blvd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7132996,"lon":-79.5794081},{"chain":"McDonald's","address":"2720 Keele St, Toronto, ON","area":"York","verified":false,"lat":43.6974116,"lon":-79.475492},{"chain":"McDonald's","address":"2828 Sheppard Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.7740081,"lon":-79.3523239},{"chain":"McDonald's","address":"2900 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.70827,"lon":-79.45393},{"chain":"McDonald's","address":"2900 Keele St, Toronto, ON","area":"West Toronto","verified":false,"lat":43.7337965,"lon":-79.4839602},{"chain":"McDonald's","address":"2980 Dundas St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6655684,"lon":-79.4688674},{"chain":"McDonald's","address":"3000 Bathurst St, Toronto, ON","area":"North York","verified":false,"lat":43.7168209,"lon":-79.4293983},{"chain":"McDonald's","address":"3000 Sheppard Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.77666,"lon":-79.31834},{"chain":"McDonald's","address":"3100 Keele St, Toronto, ON","area":"North York","verified":false,"lat":43.73987,"lon":-79.48553},{"chain":"McDonald's","address":"3109 Lakeshore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6000087,"lon":-79.5078944},{"chain":"McDonald's","address":"3200 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6466135,"lon":-79.5165364},{"chain":"McDonald's","address":"330 Queen St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6492982,"lon":-79.3947558},{"chain":"McDonald's","address":"3401 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.7260969,"lon":-79.4549863},{"chain":"McDonald's","address":"3433 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.6494354,"lon":-79.4313576},{"chain":"McDonald's","address":"3500 Kipling Ave, Toronto, ON","area":"Rexdale","verified":false,"lat":43.6704109,"lon":-79.5478788},{"chain":"McDonald's","address":"3560 Keele St, Toronto, ON","area":"North York","verified":false,"lat":43.6974116,"lon":-79.475492},{"chain":"McDonald's","address":"394 Symington Ave, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6613825,"lon":-79.4494203},{"chain":"McDonald's","address":"400 Front St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6432,"lon":-79.39306},{"chain":"McDonald's","address":"4400 Bathurst St, Toronto, ON","area":"North York","verified":false,"lat":43.75638,"lon":-79.43902},{"chain":"McDonald's","address":"444 Yonge St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.660509,"lon":-79.383427},{"chain":"McDonald's","address":"4500 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.7674969,"lon":-79.4668039},{"chain":"McDonald's","address":"455 Spadina Ave, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6582343,"lon":-79.3997024},{"chain":"McDonald's","address":"4734 Bathurst St, Toronto, ON","area":"North York","verified":false,"lat":43.7671979,"lon":-79.4414417},{"chain":"McDonald's","address":"4800 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7029024,"lon":-79.3975485},{"chain":"McDonald's","address":"4945 Islington Ave, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7159986,"lon":-79.5556089},{"chain":"McDonald's","address":"500 Queen St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6478791,"lon":-79.401228},{"chain":"McDonald's","address":"505 University Ave, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6558144,"lon":-79.3880322},{"chain":"McDonald's","address":"5095 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7688653,"lon":-79.4121014},{"chain":"McDonald's","address":"5120 Dixon Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.6989955,"lon":-79.5380188},{"chain":"McDonald's","address":"5160 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7684835,"lon":-79.4147848},{"chain":"McDonald's","address":"5200 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6491165,"lon":-79.5035588},{"chain":"McDonald's","address":"535 Bloor St W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6653143,"lon":-79.4096593},{"chain":"McDonald's","address":"536 Wilson Ave, Toronto, ON","area":"North York","verified":false,"lat":43.7331069,"lon":-79.454361},{"chain":"McDonald's","address":"5650 Bathurst St, Toronto, ON","area":"North York","verified":false,"lat":43.774389,"lon":-79.4432618},{"chain":"McDonald's","address":"580 College St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6555087,"lon":-79.4132864},{"chain":"McDonald's","address":"580 King St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.64479,"lon":-79.39949},{"chain":"McDonald's","address":"5800 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7842498,"lon":-79.4168959},{"chain":"McDonald's","address":"600 Bloor St W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.665,"lon":-79.41324},{"chain":"McDonald's","address":"6000 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.787756,"lon":-79.4186286},{"chain":"McDonald's","address":"6300 Bathurst St, Toronto, ON","area":"North York","verified":false,"lat":43.7606311,"lon":-79.4396995},{"chain":"McDonald's","address":"655 Bathurst St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.66095,"lon":-79.40913},{"chain":"McDonald's","address":"666 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7024601,"lon":-79.4201644},{"chain":"McDonald's","address":"740 College St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6564021,"lon":-79.4080205},{"chain":"McDonald's","address":"810 Bathurst St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7812927,"lon":-79.4447763},{"chain":"McDonald's","address":"834 Lawrence Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.779522,"lon":-79.136965},{"chain":"McDonald's","address":"865 York Mills Rd, Toronto, ON","area":"North York","verified":false,"lat":43.7541286,"lon":-79.349485},{"chain":"McDonald's","address":"933 Dufferin St, Toronto, ON","area":"West Toronto","verified":false,"lat":43.65779,"lon":-79.43428},{"chain":"Pizza Pizza","address":"1 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6423228,"lon":-79.3744328},{"chain":"Pizza Pizza","address":"10 Edward St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6570378,"lon":-79.3817924},{"chain":"Pizza Pizza","address":"100 Consumers Rd, North York, ON","area":"North York","verified":false,"lat":43.77408,"lon":-79.3316203},{"chain":"Pizza Pizza","address":"1000 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7688535,"lon":-79.4685769},{"chain":"Pizza Pizza","address":"101 Peter St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6475125,"lon":-79.3927771},{"chain":"Pizza Pizza","address":"1015 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7680443,"lon":-79.4698536},{"chain":"Pizza Pizza","address":"1040 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6607022,"lon":-79.4320682},{"chain":"Pizza Pizza","address":"1040 Gerrard St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.66914,"lon":-79.33685},{"chain":"Pizza Pizza","address":"1100 Islington Ave, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6437447,"lon":-79.52303},{"chain":"Pizza Pizza","address":"1100 Weston Rd, Toronto, ON","area":"York","verified":false,"lat":43.6858456,"lon":-79.4876283},{"chain":"Pizza Pizza","address":"1111 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6413087,"lon":-79.4331788},{"chain":"Pizza Pizza","address":"1120 Bay St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6641429,"lon":-79.3870579},{"chain":"Pizza Pizza","address":"120 Bloor St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6712931,"lon":-79.3839334},{"chain":"Pizza Pizza","address":"120 Danforth Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.67656,"lon":-79.35818},{"chain":"Pizza Pizza","address":"1200 Eglinton Ave E, North York, ON","area":"North York","verified":false,"lat":43.72246,"lon":-79.33453},{"chain":"Pizza Pizza","address":"1370 Dundas St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6360484,"lon":-79.5402189},{"chain":"Pizza Pizza","address":"145 Adelaide St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.648892,"lon":-79.3845926},{"chain":"Pizza Pizza","address":"1460 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.640845,"lon":-79.5397173},{"chain":"Pizza Pizza","address":"1460 Lawrence Ave W, North York, ON","area":"North York","verified":false,"lat":43.7082521,"lon":-79.4798923},{"chain":"Pizza Pizza","address":"1485 Bathurst St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6996225,"lon":-79.4249966},{"chain":"Pizza Pizza","address":"150 Eglinton Ave E, Toronto, ON","area":"Toronto","verified":false,"lat":43.7078822,"lon":-79.3940363},{"chain":"Pizza Pizza","address":"1500 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7492053,"lon":-79.5554427},{"chain":"Pizza Pizza","address":"1500 Royal York Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6921045,"lon":-79.5322689},{"chain":"Pizza Pizza","address":"1616 Dundas St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6500362,"lon":-79.4358133},{"chain":"Pizza Pizza","address":"165 King St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6474473,"lon":-79.3852468},{"chain":"Pizza Pizza","address":"1650 Victoria Park Ave, North York, ON","area":"North York","verified":false,"lat":43.7315698,"lon":-79.3058517},{"chain":"Pizza Pizza","address":"1700 Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.648606,"lon":-79.5060464},{"chain":"Pizza Pizza","address":"1700 Wilson Ave, North York, ON","area":"North York","verified":false,"lat":43.7205731,"lon":-79.5109349},{"chain":"Pizza Pizza","address":"1708 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6391051,"lon":-79.445135},{"chain":"Pizza Pizza","address":"1800 Finch Ave W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7346408,"lon":-79.6245894},{"chain":"Pizza Pizza","address":"1888 Queen St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.669,"lon":-79.30537},{"chain":"Pizza Pizza","address":"1950 Lawrence Ave E, North York, ON","area":"North York","verified":false,"lat":43.7344971,"lon":-79.3603298},{"chain":"Pizza Pizza","address":"199 King St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6508447,"lon":-79.3697024},{"chain":"Pizza Pizza","address":"2000 Kipling Ave, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.70973,"lon":-79.5672},{"chain":"Pizza Pizza","address":"207 Queen St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.65412,"lon":-79.3706},{"chain":"Pizza Pizza","address":"2200 Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.648606,"lon":-79.5060464},{"chain":"Pizza Pizza","address":"2200 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.7058323,"lon":-79.3985055},{"chain":"Pizza Pizza","address":"235 Dixon Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6966373,"lon":-79.5437768},{"chain":"Pizza Pizza","address":"235 Spadina Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.6513676,"lon":-79.3970172},{"chain":"Pizza Pizza","address":"2360 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.61624,"lon":-79.48828},{"chain":"Pizza Pizza","address":"250 Wincott Dr, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6799452,"lon":-79.5460602},{"chain":"Pizza Pizza","address":"2500 Sheppard Ave E, North York, ON","area":"North York","verified":false,"lat":43.7754153,"lon":-79.3238673},{"chain":"Pizza Pizza","address":"2600 Keele St, North York, ON","area":"North York","verified":false,"lat":43.71828,"lon":-79.48055},{"chain":"Pizza Pizza","address":"2625 Weston Rd, Toronto, ON","area":"York","verified":false,"lat":43.7112925,"lon":-79.5349619},{"chain":"Pizza Pizza","address":"2633 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.71536,"lon":-79.3999},{"chain":"Pizza Pizza","address":"2700 Islington Ave, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7411717,"lon":-79.5675182},{"chain":"Pizza Pizza","address":"2900 Dufferin St, North York, ON","area":"North York","verified":false,"lat":43.70827,"lon":-79.45393},{"chain":"Pizza Pizza","address":"300 Bridgeland Ave, North York, ON","area":"North York","verified":false,"lat":43.72424,"lon":-79.47124},{"chain":"Pizza Pizza","address":"300 The West Mall, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6223779,"lon":-79.5599321},{"chain":"Pizza Pizza","address":"3000 Yonge St, North York, ON","area":"North York","verified":false,"lat":43.7389423,"lon":-79.4055351},{"chain":"Pizza Pizza","address":"3100 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.5991018,"lon":-79.5135148},{"chain":"Pizza Pizza","address":"3130 Bathurst St, North York, ON","area":"North York","verified":false,"lat":43.7207275,"lon":-79.4302935},{"chain":"Pizza Pizza","address":"320 Danforth Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.6774596,"lon":-79.3531237},{"chain":"Pizza Pizza","address":"324 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.64942,"lon":-79.39462},{"chain":"Pizza Pizza","address":"330 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6573151,"lon":-79.381526},{"chain":"Pizza Pizza","address":"3300 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.597,"lon":-79.52389},{"chain":"Pizza Pizza","address":"3490 Yonge St, North York, ON","area":"North York","verified":false,"lat":43.7888244,"lon":-79.4177639},{"chain":"Pizza Pizza","address":"3555 Don Mills Rd, North York, ON","area":"North York","verified":false,"lat":43.7942937,"lon":-79.3543818},{"chain":"Pizza Pizza","address":"366 Queen St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.6558535,"lon":-79.3638467},{"chain":"Pizza Pizza","address":"3839 Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.648606,"lon":-79.5060464},{"chain":"Pizza Pizza","address":"4000 Steeles Ave W, North York, ON","area":"North York","verified":false,"lat":43.7700417,"lon":-79.5522345},{"chain":"Pizza Pizza","address":"4200 Dundas St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.66072,"lon":-79.5111},{"chain":"Pizza Pizza","address":"450 Horner Ave, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6031026,"lon":-79.5399618},{"chain":"Pizza Pizza","address":"4500 Sheppard Ave E, North York, ON","area":"North York","verified":false,"lat":43.7615773,"lon":-79.4103295},{"chain":"Pizza Pizza","address":"4700 Keele St, North York, ON","area":"North York","verified":false,"lat":43.7741755,"lon":-79.504749},{"chain":"Pizza Pizza","address":"484 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6625977,"lon":-79.3837763},{"chain":"Pizza Pizza","address":"4840 Dufferin St, North York, ON","area":"North York","verified":false,"lat":43.7792875,"lon":-79.4696223},{"chain":"Pizza Pizza","address":"500 Church St, Toronto, ON","area":"Toronto","verified":false,"lat":43.66398,"lon":-79.38051},{"chain":"Pizza Pizza","address":"5000 Dufferin St, North York, ON","area":"North York","verified":false,"lat":43.78201,"lon":-79.47117},{"chain":"Pizza Pizza","address":"5095 Yonge St, North York, ON","area":"North York","verified":false,"lat":43.7688653,"lon":-79.4121014},{"chain":"Pizza Pizza","address":"511 Parliament St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6540608,"lon":-79.363788},{"chain":"Pizza Pizza","address":"5200 Yonge St, North York, ON","area":"North York","verified":false,"lat":43.77055,"lon":-79.41381},{"chain":"Pizza Pizza","address":"550 The Queensway, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6236182,"lon":-79.5147637},{"chain":"Pizza Pizza","address":"57 Front St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6462139,"lon":-79.3783987},{"chain":"Pizza Pizza","address":"600 Sherbourne St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6716599,"lon":-79.3768367},{"chain":"Pizza Pizza","address":"681 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.66888,"lon":-79.38599},{"chain":"Pizza Pizza","address":"752 Spadina Ave, Toronto, ON","area":"Toronto","verified":false,"lat":43.6664441,"lon":-79.4036662},{"chain":"Pizza Pizza","address":"800 St Clair Ave W, Toronto, ON","area":"Toronto","verified":false,"lat":43.680963,"lon":-79.4300065},{"chain":"Pizza Pizza","address":"824 College St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6545808,"lon":-79.4223185},{"chain":"Pizza Pizza","address":"890 Don Mills Rd, North York, ON","area":"North York","verified":false,"lat":43.72551,"lon":-79.34155},{"chain":"Popeyes","address":"1 York Gate Blvd, North York, ON","area":"North York","verified":false,"lat":43.7582307,"lon":-79.5197749},{"chain":"Popeyes","address":"100 King St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6487681,"lon":-79.3816921},{"chain":"Popeyes","address":"100 Westmore Dr, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.73673,"lon":-79.60251},{"chain":"Popeyes","address":"1000 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7688535,"lon":-79.4685769},{"chain":"Popeyes","address":"1020 Islington Ave, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6319159,"lon":-79.5191103},{"chain":"Popeyes","address":"1077 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7678195,"lon":-79.4708502},{"chain":"Popeyes","address":"1100 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7685429,"lon":-79.4733322},{"chain":"Popeyes","address":"1257 St Clair Ave W, Toronto, ON","area":"York","verified":false,"lat":43.67696,"lon":-79.44636},{"chain":"Popeyes","address":"1265 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7546203,"lon":-79.5294232},{"chain":"Popeyes","address":"1500 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6491165,"lon":-79.5035588},{"chain":"Popeyes","address":"1520 Albion Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7406336,"lon":-79.5854244},{"chain":"Popeyes","address":"1604 Wilson Ave, North York, ON","area":"North York","verified":false,"lat":43.7208683,"lon":-79.5100237},{"chain":"Popeyes","address":"1675 Eglinton Ave W, York, ON","area":"York","verified":false,"lat":43.69627,"lon":-79.44607},{"chain":"Popeyes","address":"1776 Wilson Ave, North York, ON","area":"North York","verified":false,"lat":43.7331069,"lon":-79.454361},{"chain":"Popeyes","address":"180 Bremner Blvd, Toronto, ON","area":"Toronto","verified":false,"lat":43.6428213,"lon":-79.379894},{"chain":"Popeyes","address":"1800 Sheppard Ave E, North York, ON","area":"North York","verified":false,"lat":43.7778569,"lon":-79.3437784},{"chain":"Popeyes","address":"1985 Jane St, North York, ON","area":"North York","verified":false,"lat":43.7164809,"lon":-79.5074458},{"chain":"Popeyes","address":"2000 Lawrence Ave W, North York, ON","area":"North York","verified":false,"lat":43.7080317,"lon":-79.4801567},{"chain":"Popeyes","address":"2200 Islington Ave, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.708431,"lon":-79.5577589},{"chain":"Popeyes","address":"2200 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.7058323,"lon":-79.3985055},{"chain":"Popeyes","address":"2300 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7536604,"lon":-79.542107},{"chain":"Popeyes","address":"2400 Finch Ave W, North York, ON","area":"North York","verified":false,"lat":43.7512843,"lon":-79.5483109},{"chain":"Popeyes","address":"2401 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6145111,"lon":-79.4886202},{"chain":"Popeyes","address":"253 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6550597,"lon":-79.3801574},{"chain":"Popeyes","address":"2625 Weston Rd, York, ON","area":"York","verified":false,"lat":43.7129504,"lon":-79.5336571},{"chain":"Popeyes","address":"2630 Jane St, North York, ON","area":"North York","verified":false,"lat":43.7057419,"lon":-79.5045432},{"chain":"Popeyes","address":"3200 Dufferin St, North York, ON","area":"North York","verified":false,"lat":43.7190774,"lon":-79.4571788},{"chain":"Popeyes","address":"3212 Bloor St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6404626,"lon":-79.5413649},{"chain":"Popeyes","address":"3401 Dufferin St, North York, ON","area":"North York","verified":false,"lat":43.7260969,"lon":-79.4549863},{"chain":"Popeyes","address":"370 Burnhamthorpe Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6473945,"lon":-79.5539448},{"chain":"Popeyes","address":"386 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6589856,"lon":-79.3833776},{"chain":"Popeyes","address":"415 The Westway, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6831549,"lon":-79.5653806},{"chain":"Popeyes","address":"4952 Dundas St W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6479053,"lon":-79.5297304},{"chain":"Popeyes","address":"500 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6478791,"lon":-79.401228},{"chain":"Popeyes","address":"5095 Yonge St, North York, ON","area":"North York","verified":false,"lat":43.7688653,"lon":-79.4121014},{"chain":"Popeyes","address":"730 College St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6538685,"lon":-79.4251521},{"chain":"Popeyes","address":"900 Albion Rd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7355373,"lon":-79.5596461},{"chain":"Subway","address":"1 Orfus Rd, Toronto, ON","area":"North York","verified":false,"lat":43.7182757,"lon":-79.4657725},{"chain":"Subway","address":"100 City Centre Dr, Toronto, ON","area":"Etobicoke","verified":false,"lat":null,"lon":null},{"chain":"Subway","address":"100 Humber College Blvd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7314957,"lon":-79.5991701},{"chain":"Subway","address":"100 King St W, Toronto, ON","area":"Financial District","verified":false,"lat":43.6487681,"lon":-79.3816921},{"chain":"Subway","address":"103 Roncesvalles Ave, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6422135,"lon":-79.4472912},{"chain":"Subway","address":"1060 Sheppard Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7505987,"lon":-79.4639328},{"chain":"Subway","address":"1069 Dupont St, Toronto, ON","area":"Dovercourt Park","verified":false,"lat":43.6746814,"lon":-79.4079551},{"chain":"Subway","address":"1090 Don Mills Rd, Toronto, ON","area":"North York","verified":false,"lat":43.7364391,"lon":-79.3441473},{"chain":"Subway","address":"1100 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.6858456,"lon":-79.4876283},{"chain":"Subway","address":"1105 St Clair Ave W, Toronto, ON","area":"Corso Italia","verified":false,"lat":43.6861284,"lon":-79.4043626},{"chain":"Subway","address":"1111 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7670522,"lon":-79.4744371},{"chain":"Subway","address":"1168 St Clair Ave W, Toronto, ON","area":"York","verified":false,"lat":43.6780459,"lon":-79.4433538},{"chain":"Subway","address":"1200 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.69949,"lon":-79.43366},{"chain":"Subway","address":"1209 Dundas St W, Toronto, ON","area":"Trinity Bellwoods","verified":false,"lat":43.6492721,"lon":-79.4226346},{"chain":"Subway","address":"1235 Wilson Ave, Toronto, ON","area":"North York","verified":false,"lat":43.7231725,"lon":-79.4894205},{"chain":"Subway","address":"1256 Bloor St W, Toronto, ON","area":"Bloordale Village","verified":false,"lat":43.658999,"lon":-79.4404421},{"chain":"Subway","address":"1300 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7648865,"lon":-79.4900026},{"chain":"Subway","address":"1400 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.69251,"lon":-79.50446},{"chain":"Subway","address":"1402 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6470659,"lon":-79.5129378},{"chain":"Subway","address":"1448 Queen St W, Toronto, ON","area":"Parkdale","verified":false,"lat":43.640844,"lon":-79.4360096},{"chain":"Subway","address":"1460 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6199516,"lon":-79.5338058},{"chain":"Subway","address":"1505 Yonge St, Toronto, ON","area":"Midtown","verified":false,"lat":43.7126564,"lon":-79.3996001},{"chain":"Subway","address":"1588 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.7028831,"lon":-79.4165786},{"chain":"Subway","address":"1645 Wilson Ave, Toronto, ON","area":"North York","verified":false,"lat":43.7331069,"lon":-79.454361},{"chain":"Subway","address":"1650 Finch Ave W, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7611293,"lon":-79.5002802},{"chain":"Subway","address":"170 North Queen St, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.618589,"lon":-79.559357},{"chain":"Subway","address":"1700 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.69681,"lon":-79.44632},{"chain":"Subway","address":"171 East Liberty St, Toronto, ON","area":"Liberty Village","verified":false,"lat":43.6381006,"lon":-79.4182103},{"chain":"Subway","address":"1740 Finch Ave W, Toronto, ON","area":"Rexdale","verified":false,"lat":43.75935,"lon":-79.50771},{"chain":"Subway","address":"1840 Eglinton Ave W, Toronto, ON","area":"Fairbank","verified":false,"lat":43.6958614,"lon":-79.4509132},{"chain":"Subway","address":"1900 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.6832805,"lon":-79.4803255},{"chain":"Subway","address":"1960 Eglinton Ave W, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.69512,"lon":-79.45383},{"chain":"Subway","address":"2 Bloor St E, Toronto, ON","area":"Yorkville","verified":false,"lat":43.6708156,"lon":-79.386573},{"chain":"Subway","address":"2000 Finch Ave W, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7431284,"lon":-79.5876165},{"chain":"Subway","address":"2150 St Clair Ave W, Toronto, ON","area":"The Junction","verified":false,"lat":43.67099,"lon":-79.4756},{"chain":"Subway","address":"2171 Sheppard Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7366433,"lon":-79.5247562},{"chain":"Subway","address":"219 Danforth Ave, Toronto, ON","area":"Riverdale","verified":false,"lat":43.67655,"lon":-79.35561},{"chain":"Subway","address":"220 Yonge St, Toronto, ON","area":"Downtown","verified":false,"lat":43.6533085,"lon":-79.3806572},{"chain":"Subway","address":"2200 Islington Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.708431,"lon":-79.5577589},{"chain":"Subway","address":"2240 Dundas St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6389365,"lon":-79.5376183},{"chain":"Subway","address":"2280 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6508158,"lon":-79.4784348},{"chain":"Subway","address":"2280 Dundas St W, Toronto, ON","area":"High Park North","verified":false,"lat":43.65482,"lon":-79.45054},{"chain":"Subway","address":"2300 Yonge St, Toronto, ON","area":"Midtown","verified":false,"lat":43.7070051,"lon":-79.398796},{"chain":"Subway","address":"2320 Bloor St W, Toronto, ON","area":"Bloor West Village","verified":false,"lat":43.6504845,"lon":-79.4800607},{"chain":"Subway","address":"2386 Eglinton Ave W, Toronto, ON","area":"Little Jamaica","verified":false,"lat":43.6928606,"lon":-79.4629273},{"chain":"Subway","address":"245 Dixon Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6963147,"lon":-79.5446315},{"chain":"Subway","address":"2453 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6490372,"lon":-79.4845388},{"chain":"Subway","address":"250 The East Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6317115,"lon":-79.555369},{"chain":"Subway","address":"250 Wincott Dr, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6799452,"lon":-79.5460602},{"chain":"Subway","address":"2525 Eglinton Ave W, Toronto, ON","area":"Keelesdale","verified":false,"lat":43.69085,"lon":-79.47125},{"chain":"Subway","address":"2591 Eglinton Ave W, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.69027,"lon":-79.47384},{"chain":"Subway","address":"2682 Keele St, Toronto, ON","area":"North York","verified":false,"lat":43.7253071,"lon":-79.4819058},{"chain":"Subway","address":"270 The Kingsway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.661804,"lon":-79.5198447},{"chain":"Subway","address":"270 The West Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.633612,"lon":-79.5613733},{"chain":"Subway","address":"2740 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.7145449,"lon":-79.5366212},{"chain":"Subway","address":"283 Queen St W, Toronto, ON","area":"Queen West","verified":false,"lat":43.6390335,"lon":-79.4445721},{"chain":"Subway","address":"285 Spadina Ave, Toronto, ON","area":"Chinatown","verified":false,"lat":43.6531278,"lon":-79.3978246},{"chain":"Subway","address":"2897 Dundas St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6652863,"lon":-79.4660096},{"chain":"Subway","address":"2935 Dufferin St, Toronto, ON","area":"York","verified":false,"lat":43.6337458,"lon":-79.4253612},{"chain":"Subway","address":"300 The East Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.63726,"lon":-79.55744},{"chain":"Subway","address":"3090 Bathurst St, Toronto, ON","area":"North York","verified":false,"lat":43.7193859,"lon":-79.4300165},{"chain":"Subway","address":"3150 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6470659,"lon":-79.5129378},{"chain":"Subway","address":"3199 Lakeshore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6000087,"lon":-79.5078944},{"chain":"Subway","address":"3200 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6466135,"lon":-79.5165364},{"chain":"Subway","address":"325 Bloor St W, Toronto, ON","area":"The Annex","verified":false,"lat":43.6470659,"lon":-79.5129378},{"chain":"Subway","address":"3275 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6456243,"lon":-79.5185209},{"chain":"Subway","address":"333 Wilson Ave, Toronto, ON","area":"North York","verified":false,"lat":43.73679,"lon":-79.43541},{"chain":"Subway","address":"3330 Yonge St, Toronto, ON","area":"Lawrence Park","verified":false,"lat":43.73138,"lon":-79.40413},{"chain":"Subway","address":"3400 Finch Ave W, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7366448,"lon":-79.5927018},{"chain":"Subway","address":"3401 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.7260969,"lon":-79.4549863},{"chain":"Subway","address":"3439 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.749,"lon":-79.54137},{"chain":"Subway","address":"370 The West Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6421446,"lon":-79.5661263},{"chain":"Subway","address":"377 Burnhamthorpe Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.64772,"lon":-79.5547042},{"chain":"Subway","address":"40 Carl Hall Rd, Toronto, ON","area":"North York","verified":false,"lat":43.750224,"lon":-79.4793518},{"chain":"Subway","address":"40 King St W, Toronto, ON","area":"Financial District","verified":false,"lat":43.6494968,"lon":-79.3795651},{"chain":"Subway","address":"400 Keele St, Toronto, ON","area":"West Toronto","verified":false,"lat":43.66614,"lon":-79.46519},{"chain":"Subway","address":"4025 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7448366,"lon":-79.4062592},{"chain":"Subway","address":"441 Front St W, Toronto, ON","area":"CityPlace","verified":false,"lat":43.6421104,"lon":-79.3958497},{"chain":"Subway","address":"444 King St W, Toronto, ON","area":"Entertainment District","verified":false,"lat":43.6456807,"lon":-79.3944668},{"chain":"Subway","address":"4700 Keele St, Toronto, ON","area":"North York","verified":false,"lat":43.7741755,"lon":-79.504749},{"chain":"Subway","address":"491 Eglinton Ave W, Toronto, ON","area":"Midtown","verified":false,"lat":43.7034652,"lon":-79.4128512},{"chain":"Subway","address":"500 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6106585,"lon":-79.5232575},{"chain":"Subway","address":"500 Rexdale Blvd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.719399,"lon":-79.5989267},{"chain":"Subway","address":"5095 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7688653,"lon":-79.4121014},{"chain":"Subway","address":"535 St Clair Ave W, Toronto, ON","area":"Wychwood","verified":false,"lat":43.68255,"lon":-79.42012},{"chain":"Subway","address":"555 Burnhamthorpe Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6448839,"lon":-79.5679094},{"chain":"Subway","address":"5582 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7792396,"lon":-79.4157426},{"chain":"Subway","address":"579 Bloor St W, Toronto, ON","area":"Koreatown","verified":false,"lat":43.6470659,"lon":-79.5129378},{"chain":"Subway","address":"595 Bay St, Toronto, ON","area":"Downtown","verified":false,"lat":43.6563768,"lon":-79.3829722},{"chain":"Subway","address":"5987 Bathurst St, Toronto, ON","area":"North York","verified":false,"lat":43.7864358,"lon":-79.4457107},{"chain":"Subway","address":"610 Bay St, Toronto, ON","area":"Downtown","verified":false,"lat":43.6560603,"lon":-79.3846734},{"chain":"Subway","address":"626 Dixon Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6912688,"lon":-79.5740032},{"chain":"Subway","address":"635 Sheppard Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7550211,"lon":-79.4402908},{"chain":"Subway","address":"65 Front St W, Toronto, ON","area":"Downtown","verified":false,"lat":43.6446609,"lon":-79.3817489},{"chain":"Subway","address":"650 King St W, Toronto, ON","area":"Fashion District","verified":false,"lat":43.64456,"lon":-79.40218},{"chain":"Subway","address":"658 Danforth Ave, Toronto, ON","area":"Greektown","verified":false,"lat":43.6792,"lon":-79.34465},{"chain":"Subway","address":"70 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.6738745,"lon":-79.4697584},{"chain":"Subway","address":"700 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.624413,"lon":-79.5290057},{"chain":"Subway","address":"700 Lawrence Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7167617,"lon":-79.4471895},{"chain":"Subway","address":"75 Gunns Rd, Toronto, ON","area":"The Stockyards","verified":false,"lat":43.67484,"lon":-79.47174},{"chain":"Subway","address":"77 Bloor St W, Toronto, ON","area":"Yorkville","verified":false,"lat":43.6692672,"lon":-79.3897036},{"chain":"Subway","address":"777 Bay St, Toronto, ON","area":"Downtown","verified":false,"lat":43.6605608,"lon":-79.3845989},{"chain":"Subway","address":"850 Dixon Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.697013,"lon":-79.5471565},{"chain":"Subway","address":"900 Dufferin St, Toronto, ON","area":"Dufferin Grove","verified":false,"lat":43.65598,"lon":-79.4357279},{"chain":"Subway","address":"900 Eglinton Ave W, Toronto, ON","area":"Cedarvale","verified":false,"lat":43.7007238,"lon":-79.4274774},{"chain":"Tim Hortons","address":"1 Eva Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.639116,"lon":-79.5622347},{"chain":"Tim Hortons","address":"10 Dundas St E, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6570352,"lon":-79.3804596},{"chain":"Tim Hortons","address":"100 Bloor St W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6695227,"lon":-79.3913578},{"chain":"Tim Hortons","address":"100 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6843938,"lon":-79.5090473},{"chain":"Tim Hortons","address":"100 Humber College Blvd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7314957,"lon":-79.5991701},{"chain":"Tim Hortons","address":"100 King St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6487681,"lon":-79.3816921},{"chain":"Tim Hortons","address":"1000 College St, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6533063,"lon":-79.4287131},{"chain":"Tim Hortons","address":"1000 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7002798,"lon":-79.4296339},{"chain":"Tim Hortons","address":"1000 Queen St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6443832,"lon":-79.4186994},{"chain":"Tim Hortons","address":"1030 Bayview Ave, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6743376,"lon":-79.3643642},{"chain":"Tim Hortons","address":"1050 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.6717476,"lon":-79.4141379},{"chain":"Tim Hortons","address":"1100 St Clair Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6786702,"lon":-79.4404045},{"chain":"Tim Hortons","address":"1100 Weston Rd, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.6858456,"lon":-79.4876283},{"chain":"Tim Hortons","address":"1160 Eglinton Ave W, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.7028831,"lon":-79.4165786},{"chain":"Tim Hortons","address":"1190 Queen St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6428687,"lon":-79.426369},{"chain":"Tim Hortons","address":"120 Yonge St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6505627,"lon":-79.3786561},{"chain":"Tim Hortons","address":"1200 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.6976243,"lon":-79.4241889},{"chain":"Tim Hortons","address":"1200 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6594153,"lon":-79.4381822},{"chain":"Tim Hortons","address":"1200 Eglinton Ave W, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.69949,"lon":-79.43366},{"chain":"Tim Hortons","address":"1200 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6815935,"lon":-79.3915821},{"chain":"Tim Hortons","address":"1240 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.7028831,"lon":-79.4165786},{"chain":"Tim Hortons","address":"1250 Dixon Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6989955,"lon":-79.5380188},{"chain":"Tim Hortons","address":"1250 Weston Rd, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.6883827,"lon":-79.4938798},{"chain":"Tim Hortons","address":"1300 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.6674,"lon":-79.43891},{"chain":"Tim Hortons","address":"1340 Queen St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6417498,"lon":-79.4319119},{"chain":"Tim Hortons","address":"140 Simcoe St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.64953,"lon":-79.38715},{"chain":"Tim Hortons","address":"1400 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.6806428,"lon":-79.4175644},{"chain":"Tim Hortons","address":"1400 Rexdale Blvd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7119584,"lon":-79.5658719},{"chain":"Tim Hortons","address":"1400 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.62092,"lon":-79.5312},{"chain":"Tim Hortons","address":"1400 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6866342,"lon":-79.393617},{"chain":"Tim Hortons","address":"142 John St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.648994,"lon":-79.390862},{"chain":"Tim Hortons","address":"145 Queen St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6505983,"lon":-79.385527},{"chain":"Tim Hortons","address":"1450 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6572062,"lon":-79.4487442},{"chain":"Tim Hortons","address":"146 Front St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6451506,"lon":-79.3838917},{"chain":"Tim Hortons","address":"15 York St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6424403,"lon":-79.3806144},{"chain":"Tim Hortons","address":"150 Eglinton Ave E, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7078822,"lon":-79.3940363},{"chain":"Tim Hortons","address":"150 Weston Rd, Toronto, ON","area":"York","verified":false,"lat":43.66802,"lon":-79.46185},{"chain":"Tim Hortons","address":"1500 Caledonia Rd, Toronto, ON","area":"North York","verified":false,"lat":43.6986701,"lon":-79.4635423},{"chain":"Tim Hortons","address":"1500 Eglinton Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6980225,"lon":-79.4406671},{"chain":"Tim Hortons","address":"1500 Islington Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6627295,"lon":-79.5319896},{"chain":"Tim Hortons","address":"1500 Jane St, Toronto, ON","area":"York","verified":false,"lat":43.6967696,"lon":-79.5039216},{"chain":"Tim Hortons","address":"1500 Queen St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6404136,"lon":-79.4381381},{"chain":"Tim Hortons","address":"1500 St Clair Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.67564,"lon":-79.4552},{"chain":"Tim Hortons","address":"1500 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6190001,"lon":-79.5360743},{"chain":"Tim Hortons","address":"1530 Albion Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7416448,"lon":-79.5856771},{"chain":"Tim Hortons","address":"1540 Eglinton Ave W, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.69774,"lon":-79.44174},{"chain":"Tim Hortons","address":"155 Wellington St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6455702,"lon":-79.3859319},{"chain":"Tim Hortons","address":"1600 Eglinton Ave W, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.69738,"lon":-79.44348},{"chain":"Tim Hortons","address":"1600 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7029024,"lon":-79.3975485},{"chain":"Tim Hortons","address":"1650 Albion Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.742438,"lon":-79.5971594},{"chain":"Tim Hortons","address":"1650 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6556202,"lon":-79.4567079},{"chain":"Tim Hortons","address":"1650 Eglinton Ave W, Toronto, ON","area":"Mount Dennis","verified":false,"lat":43.7028831,"lon":-79.4165786},{"chain":"Tim Hortons","address":"1686 Dundas St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6301242,"lon":-79.5513699},{"chain":"Tim Hortons","address":"1700 Jane St, Toronto, ON","area":"York","verified":false,"lat":43.70348,"lon":-79.50426},{"chain":"Tim Hortons","address":"1700 Lawrence Ave W, Toronto, ON","area":"York","verified":false,"lat":43.7047661,"lon":-79.4946491},{"chain":"Tim Hortons","address":"1700 St Clair Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6746451,"lon":-79.4592287},{"chain":"Tim Hortons","address":"1700 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6226488,"lon":-79.5190688},{"chain":"Tim Hortons","address":"1700 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.6974058,"lon":-79.5098201},{"chain":"Tim Hortons","address":"171 Spadina Ave, Toronto, ON","area":"Downtown West","verified":false,"lat":43.64927,"lon":-79.39626},{"chain":"Tim Hortons","address":"1758 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.640845,"lon":-79.5397173},{"chain":"Tim Hortons","address":"1775 Albion Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7444111,"lon":-79.609168},{"chain":"Tim Hortons","address":"180 Horner Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6004425,"lon":-79.5509055},{"chain":"Tim Hortons","address":"180 John St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6506025,"lon":-79.3917177},{"chain":"Tim Hortons","address":"1800 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.6996225,"lon":-79.4249966},{"chain":"Tim Hortons","address":"1800 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.6808706,"lon":-79.444515},{"chain":"Tim Hortons","address":"1800 Lawrence Ave W, Toronto, ON","area":"York","verified":false,"lat":43.70362,"lon":-79.50129},{"chain":"Tim Hortons","address":"1800 Rexdale Blvd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7197783,"lon":-79.6058306},{"chain":"Tim Hortons","address":"1850 Albion Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.74649,"lon":-79.61541},{"chain":"Tim Hortons","address":"1892 Queen St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6413087,"lon":-79.4331788},{"chain":"Tim Hortons","address":"1900 Jane St, Toronto, ON","area":"York","verified":false,"lat":43.70992,"lon":-79.50608},{"chain":"Tim Hortons","address":"1900 Lawrence Ave W, Toronto, ON","area":"York","verified":false,"lat":43.7140474,"lon":-79.4550879},{"chain":"Tim Hortons","address":"1900 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6143215,"lon":-79.5601327},{"chain":"Tim Hortons","address":"1900 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.697936,"lon":-79.3972908},{"chain":"Tim Hortons","address":"195 Evans Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6560976,"lon":-79.484905},{"chain":"Tim Hortons","address":"1970 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.70076,"lon":-79.519},{"chain":"Tim Hortons","address":"199 Bay St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6482034,"lon":-79.3795394},{"chain":"Tim Hortons","address":"1990 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.6904403,"lon":-79.4988379},{"chain":"Tim Hortons","address":"20 Bay St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6416282,"lon":-79.3779013},{"chain":"Tim Hortons","address":"200 Bloor St E, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6716027,"lon":-79.3810064},{"chain":"Tim Hortons","address":"200 City Centre Dr, Toronto, ON","area":"Etobicoke","verified":false,"lat":null,"lon":null},{"chain":"Tim Hortons","address":"200 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7059141,"lon":-79.4051212},{"chain":"Tim Hortons","address":"200 Humber College Blvd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7312475,"lon":-79.6074347},{"chain":"Tim Hortons","address":"2000 Eglinton Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6949,"lon":-79.45503},{"chain":"Tim Hortons","address":"2000 Lawrence Ave W, Toronto, ON","area":"Weston","verified":false,"lat":43.7016,"lon":-79.51096},{"chain":"Tim Hortons","address":"207 Queen St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.640038,"lon":-79.4394148},{"chain":"Tim Hortons","address":"2100 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.7037745,"lon":-79.4263879},{"chain":"Tim Hortons","address":"2100 Jane St, Toronto, ON","area":"York","verified":false,"lat":43.7193745,"lon":-79.508848},{"chain":"Tim Hortons","address":"2160 Queen St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6493516,"lon":-79.3935308},{"chain":"Tim Hortons","address":"220 King St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6475029,"lon":-79.3871277},{"chain":"Tim Hortons","address":"220 Yonge St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6533085,"lon":-79.3806572},{"chain":"Tim Hortons","address":"2200 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6514156,"lon":-79.4755058},{"chain":"Tim Hortons","address":"2200 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7058323,"lon":-79.3985055},{"chain":"Tim Hortons","address":"222 Spadina Ave, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6509911,"lon":-79.3979222},{"chain":"Tim Hortons","address":"2225 Albion Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7469562,"lon":-79.6220889},{"chain":"Tim Hortons","address":"2300 Islington Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.71537,"lon":-79.55587},{"chain":"Tim Hortons","address":"2300 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7070051,"lon":-79.398796},{"chain":"Tim Hortons","address":"2310 Weston Rd, Toronto, ON","area":"Weston","verified":false,"lat":43.7051887,"lon":-79.5297968},{"chain":"Tim Hortons","address":"2345 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6162062,"lon":-79.487389},{"chain":"Tim Hortons","address":"235 Horner Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6016794,"lon":-79.5455695},{"chain":"Tim Hortons","address":"235 Queen St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.65024,"lon":-79.38829},{"chain":"Tim Hortons","address":"240 Bloor St E, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6721244,"lon":-79.3732164},{"chain":"Tim Hortons","address":"2400 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.7050255,"lon":-79.4269405},{"chain":"Tim Hortons","address":"2400 Lawrence Ave W, Toronto, ON","area":"Weston","verified":false,"lat":43.7100068,"lon":-79.4732333},{"chain":"Tim Hortons","address":"2400 St Clair Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.66971,"lon":-79.48151},{"chain":"Tim Hortons","address":"2400 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.71026,"lon":-79.39944},{"chain":"Tim Hortons","address":"2450 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.64887,"lon":-79.48546},{"chain":"Tim Hortons","address":"2450 Islington Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.72499,"lon":-79.56016},{"chain":"Tim Hortons","address":"250 Eglinton Ave E, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.708449,"lon":-79.390686},{"chain":"Tim Hortons","address":"250 Front St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6443796,"lon":-79.387498},{"chain":"Tim Hortons","address":"250 The West Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6305628,"lon":-79.5552683},{"chain":"Tim Hortons","address":"2500 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6480075,"lon":-79.4868575},{"chain":"Tim Hortons","address":"2500 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.6341869,"lon":-79.4254919},{"chain":"Tim Hortons","address":"2500 Eglinton Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6895936,"lon":-79.4775616},{"chain":"Tim Hortons","address":"2500 Jane St, Toronto, ON","area":"York","verified":false,"lat":43.7205826,"lon":-79.5085816},{"chain":"Tim Hortons","address":"2500 Lawrence Ave W, Toronto, ON","area":"Weston","verified":false,"lat":43.719247,"lon":-79.430141},{"chain":"Tim Hortons","address":"2500 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7120445,"lon":-79.3999491},{"chain":"Tim Hortons","address":"2540 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6704109,"lon":-79.5478788},{"chain":"Tim Hortons","address":"255 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6236182,"lon":-79.5147637},{"chain":"Tim Hortons","address":"2600 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.7084125,"lon":-79.4275334},{"chain":"Tim Hortons","address":"2600 Eglinton Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.69084,"lon":-79.47301},{"chain":"Tim Hortons","address":"2600 Jane St, Toronto, ON","area":"York","verified":false,"lat":43.740545,"lon":-79.5142778},{"chain":"Tim Hortons","address":"2600 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.714841,"lon":-79.400302},{"chain":"Tim Hortons","address":"2625 Weston Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7112925,"lon":-79.5349619},{"chain":"Tim Hortons","address":"2650 Weston Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7145449,"lon":-79.5366212},{"chain":"Tim Hortons","address":"270 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6296195,"lon":-79.4888545},{"chain":"Tim Hortons","address":"2700 Dufferin St, Toronto, ON","area":"York","verified":false,"lat":43.7012922,"lon":-79.4524243},{"chain":"Tim Hortons","address":"2700 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.6907086,"lon":-79.4781838},{"chain":"Tim Hortons","address":"2700 Finch Ave W, Toronto, ON","area":"Rexdale","verified":false,"lat":43.74638,"lon":-79.56809},{"chain":"Tim Hortons","address":"2700 Islington Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7411717,"lon":-79.5675182},{"chain":"Tim Hortons","address":"2700 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7170744,"lon":-79.4007046},{"chain":"Tim Hortons","address":"2750 Weston Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.6904403,"lon":-79.4988379},{"chain":"Tim Hortons","address":"277 Front St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.64389,"lon":-79.38774},{"chain":"Tim Hortons","address":"2800 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.6706019,"lon":-79.5780912},{"chain":"Tim Hortons","address":"2800 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6855603,"lon":-79.3930437},{"chain":"Tim Hortons","address":"2850 Weston Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.72164,"lon":-79.53762},{"chain":"Tim Hortons","address":"2855 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6012477,"lon":-79.5023365},{"chain":"Tim Hortons","address":"290 Horner Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6016794,"lon":-79.5455695},{"chain":"Tim Hortons","address":"290 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6236182,"lon":-79.5147637},{"chain":"Tim Hortons","address":"2900 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6486961,"lon":-79.5064594},{"chain":"Tim Hortons","address":"2900 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.6895936,"lon":-79.4775616},{"chain":"Tim Hortons","address":"2900 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6193675,"lon":-79.5261766},{"chain":"Tim Hortons","address":"2901 Bayview Ave, Toronto, ON","area":"North York","verified":false,"lat":43.7687554,"lon":-79.3863481},{"chain":"Tim Hortons","address":"2930 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.715813,"lon":-79.429091},{"chain":"Tim Hortons","address":"2999 Dundas St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6653313,"lon":-79.4692975},{"chain":"Tim Hortons","address":"300 Burnhamthorpe Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.649007,"lon":-79.5467859},{"chain":"Tim Hortons","address":"300 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.704904,"lon":-79.4081575},{"chain":"Tim Hortons","address":"300 Front St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6441606,"lon":-79.3894075},{"chain":"Tim Hortons","address":"3000 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.7168209,"lon":-79.4293983},{"chain":"Tim Hortons","address":"3000 Eglinton Ave W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6843938,"lon":-79.5090473},{"chain":"Tim Hortons","address":"3000 Islington Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.759484,"lon":-79.5716356},{"chain":"Tim Hortons","address":"3000 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7239045,"lon":-79.4023741},{"chain":"Tim Hortons","address":"3003 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.64739,"lon":-79.51047},{"chain":"Tim Hortons","address":"3010 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6476886,"lon":-79.5110718},{"chain":"Tim Hortons","address":"3050 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.712332,"lon":-79.4545037},{"chain":"Tim Hortons","address":"310 Norseman St, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.636428,"lon":-79.5094044},{"chain":"Tim Hortons","address":"310 The East Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.63745,"lon":-79.55736},{"chain":"Tim Hortons","address":"312 Bloor St W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6444967,"lon":-79.524012},{"chain":"Tim Hortons","address":"315 King St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.646265,"lon":-79.3905578},{"chain":"Tim Hortons","address":"3200 Islington Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7010046,"lon":-79.5485218},{"chain":"Tim Hortons","address":"3200 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.72814,"lon":-79.40329},{"chain":"Tim Hortons","address":"3250 Weston Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.73995,"lon":-79.54002},{"chain":"Tim Hortons","address":"3277 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6374207,"lon":-79.3973406},{"chain":"Tim Hortons","address":"330 Front St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6437945,"lon":-79.3910369},{"chain":"Tim Hortons","address":"3300 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6452733,"lon":-79.5228608},{"chain":"Tim Hortons","address":"3300 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.72146,"lon":-79.4569},{"chain":"Tim Hortons","address":"3300 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7305021,"lon":-79.4039039},{"chain":"Tim Hortons","address":"335 Rexdale Blvd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7146642,"lon":-79.5854074},{"chain":"Tim Hortons","address":"3380 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.5961235,"lon":-79.5271512},{"chain":"Tim Hortons","address":"340 University Ave, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6569724,"lon":-79.3890767},{"chain":"Tim Hortons","address":"3400 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7326615,"lon":-79.4045101},{"chain":"Tim Hortons","address":"350 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.64109,"lon":-79.42888},{"chain":"Tim Hortons","address":"3500 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.7289935,"lon":-79.4324295},{"chain":"Tim Hortons","address":"3500 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6470659,"lon":-79.5129378},{"chain":"Tim Hortons","address":"3500 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6704109,"lon":-79.5478788},{"chain":"Tim Hortons","address":"3500 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.722136,"lon":-79.4015982},{"chain":"Tim Hortons","address":"3550 Keele St, Toronto, ON","area":"York","verified":false,"lat":43.6974116,"lon":-79.475492},{"chain":"Tim Hortons","address":"3600 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7390425,"lon":-79.4058263},{"chain":"Tim Hortons","address":"366 Queen St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6490809,"lon":-79.3958028},{"chain":"Tim Hortons","address":"370 The West Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6421446,"lon":-79.5661263},{"chain":"Tim Hortons","address":"3700 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6193675,"lon":-79.5261766},{"chain":"Tim Hortons","address":"3750 Weston Rd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.762261,"lon":-79.5449708},{"chain":"Tim Hortons","address":"3791 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6374207,"lon":-79.3973406},{"chain":"Tim Hortons","address":"380 The East Mall, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6439363,"lon":-79.560687},{"chain":"Tim Hortons","address":"3800 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.738873,"lon":-79.4066191},{"chain":"Tim Hortons","address":"390 Dixon Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6953333,"lon":-79.5577814},{"chain":"Tim Hortons","address":"3900 Islington Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7506048,"lon":-79.567964},{"chain":"Tim Hortons","address":"3900 Keele St, Toronto, ON","area":"York","verified":false,"lat":43.6569294,"lon":-79.4609308},{"chain":"Tim Hortons","address":"3900 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7410915,"lon":-79.4066846},{"chain":"Tim Hortons","address":"3950 Bathurst St, Toronto, ON","area":"Bathurst Corridor","verified":false,"lat":43.7451796,"lon":-79.4361273},{"chain":"Tim Hortons","address":"400 University Ave, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6535316,"lon":-79.3883612},{"chain":"Tim Hortons","address":"4000 Eglinton Ave W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6928606,"lon":-79.4629273},{"chain":"Tim Hortons","address":"4000 Keele St, Toronto, ON","area":"York","verified":false,"lat":43.7083269,"lon":-79.4778782},{"chain":"Tim Hortons","address":"4000 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6704109,"lon":-79.5478788},{"chain":"Tim Hortons","address":"4000 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.742407,"lon":-79.4078329},{"chain":"Tim Hortons","address":"401 Queen St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6489916,"lon":-79.3946509},{"chain":"Tim Hortons","address":"410 Horner Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6071071,"lon":-79.5210118},{"chain":"Tim Hortons","address":"4100 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6370157,"lon":-79.4469298},{"chain":"Tim Hortons","address":"4100 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7452951,"lon":-79.4071499},{"chain":"Tim Hortons","address":"4125 Dundas St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6617478,"lon":-79.5072349},{"chain":"Tim Hortons","address":"4200 Eglinton Ave W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.68257,"lon":-79.52774},{"chain":"Tim Hortons","address":"4200 Keele St, Toronto, ON","area":"York","verified":false,"lat":43.6569294,"lon":-79.4609308},{"chain":"Tim Hortons","address":"4200 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6193675,"lon":-79.5261766},{"chain":"Tim Hortons","address":"4300 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.639623,"lon":-79.3889497},{"chain":"Tim Hortons","address":"438 University Ave, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.654697,"lon":-79.388596},{"chain":"Tim Hortons","address":"445 Horner Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.60142,"lon":-79.54025},{"chain":"Tim Hortons","address":"450 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.70414,"lon":-79.41195},{"chain":"Tim Hortons","address":"450 Yonge St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6615133,"lon":-79.3835285},{"chain":"Tim Hortons","address":"4500 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.7674969,"lon":-79.4668039},{"chain":"Tim Hortons","address":"4600 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6704109,"lon":-79.5478788},{"chain":"Tim Hortons","address":"4700 Dundas St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.629169,"lon":-79.5541694},{"chain":"Tim Hortons","address":"4700 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6304977,"lon":-79.4201951},{"chain":"Tim Hortons","address":"4760 Eglinton Ave W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.67733,"lon":-79.55262},{"chain":"Tim Hortons","address":"477 Queen St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6483225,"lon":-79.3977267},{"chain":"Tim Hortons","address":"4789 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7609411,"lon":-79.4103084},{"chain":"Tim Hortons","address":"4800 Kipling Ave, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6704109,"lon":-79.5478788},{"chain":"Tim Hortons","address":"4856 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7627125,"lon":-79.4116251},{"chain":"Tim Hortons","address":"4910 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.7810734,"lon":-79.4700531},{"chain":"Tim Hortons","address":"4936 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.7814043,"lon":-79.4701313},{"chain":"Tim Hortons","address":"50 Bloor St W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6702976,"lon":-79.3878344},{"chain":"Tim Hortons","address":"50 Bremner Blvd, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6422692,"lon":-79.3845963},{"chain":"Tim Hortons","address":"500 The Queensway, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6236182,"lon":-79.5147637},{"chain":"Tim Hortons","address":"500 Weston Rd, Toronto, ON","area":"York","verified":false,"lat":43.67681,"lon":-79.4641345},{"chain":"Tim Hortons","address":"5000 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7662213,"lon":-79.4128711},{"chain":"Tim Hortons","address":"501 St Clair Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6829138,"lon":-79.4179726},{"chain":"Tim Hortons","address":"5050 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7670459,"lon":-79.4135046},{"chain":"Tim Hortons","address":"5055 Dundas St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6454087,"lon":-79.5311426},{"chain":"Tim Hortons","address":"520 Bloor St W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6653513,"lon":-79.4107716},{"chain":"Tim Hortons","address":"5200 Finch Ave W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7435689,"lon":-79.5826468},{"chain":"Tim Hortons","address":"5255 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.772134,"lon":-79.4130915},{"chain":"Tim Hortons","address":"5320 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7731868,"lon":-79.4140998},{"chain":"Tim Hortons","address":"5359 Lake Shore Blvd W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6304977,"lon":-79.4201951},{"chain":"Tim Hortons","address":"5400 Eglinton Ave W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6895936,"lon":-79.4775616},{"chain":"Tim Hortons","address":"5450 Finch Ave W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7434719,"lon":-79.5843167},{"chain":"Tim Hortons","address":"5468 Dundas St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6328124,"lon":-79.544639},{"chain":"Tim Hortons","address":"55 University Ave, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6467723,"lon":-79.3838794},{"chain":"Tim Hortons","address":"5555 Dundas St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.630363,"lon":-79.5491614},{"chain":"Tim Hortons","address":"5600 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.783438,"lon":-79.4702754},{"chain":"Tim Hortons","address":"5700 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7811463,"lon":-79.416504},{"chain":"Tim Hortons","address":"580 King St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.64479,"lon":-79.39949},{"chain":"Tim Hortons","address":"600 College St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.65527,"lon":-79.4141885},{"chain":"Tim Hortons","address":"600 Dixon Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6923854,"lon":-79.5728994},{"chain":"Tim Hortons","address":"600 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7028145,"lon":-79.4181306},{"chain":"Tim Hortons","address":"600 King St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6446612,"lon":-79.3999393},{"chain":"Tim Hortons","address":"6200 Finch Ave W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7428173,"lon":-79.5890061},{"chain":"Tim Hortons","address":"6400 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.79539,"lon":-79.42273},{"chain":"Tim Hortons","address":"65 Bay St, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6561272,"lon":-79.3838816},{"chain":"Tim Hortons","address":"6500 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.6337458,"lon":-79.4253612},{"chain":"Tim Hortons","address":"656 Bloor St W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6642997,"lon":-79.4155695},{"chain":"Tim Hortons","address":"6800 Dufferin St, Toronto, ON","area":"Dufferin Corridor","verified":false,"lat":43.6337458,"lon":-79.4253612},{"chain":"Tim Hortons","address":"700 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7023666,"lon":-79.4206252},{"chain":"Tim Hortons","address":"730 Rexdale Blvd, Toronto, ON","area":"Rexdale","verified":false,"lat":43.7197783,"lon":-79.6058306},{"chain":"Tim Hortons","address":"730 Yonge St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.668848,"lon":-79.3870085},{"chain":"Tim Hortons","address":"747 St Clair Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.68093,"lon":-79.42821},{"chain":"Tim Hortons","address":"77 King St W, Toronto, ON","area":"Downtown West","verified":false,"lat":43.6478992,"lon":-79.3819976},{"chain":"Tim Hortons","address":"80 Eglinton Ave E, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7073697,"lon":-79.3960042},{"chain":"Tim Hortons","address":"800 Bay St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6609387,"lon":-79.3861145},{"chain":"Tim Hortons","address":"800 College St, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.6595535,"lon":-79.3918354},{"chain":"Tim Hortons","address":"800 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7014418,"lon":-79.4245081},{"chain":"Tim Hortons","address":"850 Weston Rd, Toronto, ON","area":"York","verified":false,"lat":43.6830249,"lon":-79.4797708},{"chain":"Tim Hortons","address":"859 Eglinton Ave W, Toronto, ON","area":"Central Toronto","verified":false,"lat":43.7008122,"lon":-79.4257309},{"chain":"Tim Hortons","address":"910 Bloor St W, Toronto, ON","area":"West Toronto","verified":false,"lat":43.6619319,"lon":-79.4264397},{"chain":"Tim Hortons","address":"950 Dixon Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6872495,"lon":-79.5987604},{"chain":"Wendy's","address":"1 York Mills Rd, Toronto, ON","area":"North York","verified":false,"lat":43.753966,"lon":-79.3551119},{"chain":"Wendy's","address":"10 King St E, Toronto, ON","area":"Toronto","verified":false,"lat":43.649334,"lon":-79.377502},{"chain":"Wendy's","address":"1000 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7689352,"lon":-79.4690715},{"chain":"Wendy's","address":"1004 Sheppard Ave E, Toronto, ON","area":"North York","verified":false,"lat":43.7629331,"lon":-79.4044996},{"chain":"Wendy's","address":"1050 King St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6402867,"lon":-79.4215921},{"chain":"Wendy's","address":"1100 Sheppard Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7519258,"lon":-79.4668858},{"chain":"Wendy's","address":"120 Dundas St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.65583,"lon":-79.38445},{"chain":"Wendy's","address":"1200 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.69949,"lon":-79.43366},{"chain":"Wendy's","address":"1238 St Clair Ave W, Toronto, ON","area":"York","verified":false,"lat":43.67764,"lon":-79.44566},{"chain":"Wendy's","address":"1475 Queen St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6399789,"lon":-79.4392091},{"chain":"Wendy's","address":"1599 Jane St, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.70011,"lon":-79.50266},{"chain":"Wendy's","address":"1610 The Queensway, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.61735,"lon":-79.54411},{"chain":"Wendy's","address":"1650 Bathurst St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6937751,"lon":-79.4230947},{"chain":"Wendy's","address":"1881 Finch Ave W, Toronto, ON","area":"North York","verified":false,"lat":43.7573603,"lon":-79.516071},{"chain":"Wendy's","address":"2 Bloor St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.64823,"lon":-79.50846},{"chain":"Wendy's","address":"2424 Eglinton Ave W, Toronto, ON","area":"York","verified":false,"lat":43.6928606,"lon":-79.4629273},{"chain":"Wendy's","address":"254 Yonge St, Toronto, ON","area":"Toronto","verified":false,"lat":43.6547159,"lon":-79.3803631},{"chain":"Wendy's","address":"2625 Weston Rd, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.7112925,"lon":-79.5349619},{"chain":"Wendy's","address":"264 Adelaide St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6480302,"lon":-79.3898585},{"chain":"Wendy's","address":"2655 Lake Shore Blvd W, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.5963116,"lon":-79.5255455},{"chain":"Wendy's","address":"2772 Bloor St W, Toronto, ON","area":"Etobicoke","verified":false,"lat":43.6491165,"lon":-79.5035588},{"chain":"Wendy's","address":"2901 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.70851,"lon":-79.45311},{"chain":"Wendy's","address":"295 The West Mall, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.635356,"lon":-79.5613133},{"chain":"Wendy's","address":"3003 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.6494354,"lon":-79.4313576},{"chain":"Wendy's","address":"3497 Bathurst St, Toronto, ON","area":"North York","verified":false,"lat":43.6976243,"lon":-79.4241889},{"chain":"Wendy's","address":"385 The Westway, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.684,"lon":-79.56291},{"chain":"Wendy's","address":"400 The East Mall, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.6464672,"lon":-79.5602675},{"chain":"Wendy's","address":"4004 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.7126564,"lon":-79.3996001},{"chain":"Wendy's","address":"489 King St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6447655,"lon":-79.3971703},{"chain":"Wendy's","address":"4920 Dufferin St, Toronto, ON","area":"North York","verified":false,"lat":43.7812007,"lon":-79.4700832},{"chain":"Wendy's","address":"5133 Yonge St, Toronto, ON","area":"North York","verified":false,"lat":43.6855603,"lon":-79.3930437},{"chain":"Wendy's","address":"555 Rexdale Blvd, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7150801,"lon":-79.6040694},{"chain":"Wendy's","address":"6085 Islington Ave, Etobicoke, ON","area":"Etobicoke","verified":false,"lat":43.7010046,"lon":-79.5485218},{"chain":"Wendy's","address":"65 Front St W, Toronto, ON","area":"Toronto","verified":false,"lat":43.6446609,"lon":-79.3817489}];
+
+    (() => {
+  "use strict";
+
+  const STATUS_OPTIONS = [
+    ["not-applied", "Not applied"],
+    ["applied", "Applied"],
+    ["walked-in", "Walked in"],
+    ["not-interested", "Not interested"]
+  ];
+  const STATUS_STORAGE = "fast-food-tracker.statuses.v2";
+  const $ = id => document.getElementById(id);
+  const format = number => number.toLocaleString();
+  const statusValues = new Set(STATUS_OPTIONS.map(option => option[0]));
+
+  const dirtyStatusKeys = new Set();
+
+  function readStatuses(storageKey = STATUS_STORAGE, strict = false) {
+    try {
+      const value = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      return Object.assign(
+        Object.create(null),
+        value && typeof value === "object" && !Array.isArray(value) ? value : {}
+      );
+    } catch (error) {
+      $("storage-notice").hidden = false;
+      if (strict) throw error;
+      return Object.create(null);
+    }
+  }
+
+  function refreshStatuses(updated) {
+    Object.keys(statuses).forEach(key => {
+      if (!dirtyStatusKeys.has(key)) delete statuses[key];
+    });
+    Object.entries(updated).forEach(([key, value]) => {
+      if (!dirtyStatusKeys.has(key)) statuses[key] = value;
+    });
+  }
+
+  function saveStatuses() {
+    try {
+      const merged = readStatuses(STATUS_STORAGE, true);
+      dirtyStatusKeys.forEach(key => {
+        if (Object.prototype.hasOwnProperty.call(statuses, key)) {
+          merged[key] = statuses[key];
+        } else {
+          delete merged[key];
+        }
+      });
+      localStorage.setItem(STATUS_STORAGE, JSON.stringify(merged));
+      refreshStatuses(merged);
+      dirtyStatusKeys.clear();
+    } catch {
+      $("storage-notice").hidden = false;
+    }
+  }
+
+  function validCoordinates(item) {
+    return typeof item.lat === "number" &&
+      typeof item.lon === "number" &&
+      Number.isFinite(item.lat) &&
+      Number.isFinite(item.lon) &&
+      Math.abs(item.lat) <= 90 &&
+      Math.abs(item.lon) <= 180;
+  }
+
+  const statuses = readStatuses();
+  const usedStatusKeys = new Set();
+  const locations = LOCATIONS.map((item, id) => {
+    const chain = String(item.chain ?? "");
+    const address = String(item.address ?? "");
+    const area = String(item.area ?? "");
+    let key = chain + "|" + address + "|" + area;
+    while (usedStatusKeys.has(key)) key += "#" + id;
+    usedStatusKeys.add(key);
+    return {
+      id,
+      chain,
+      address,
+      area,
+      lat: item.lat,
+      lon: item.lon,
+      pinned: validCoordinates(item),
+      verified: item.verified === true,
+      key,
+      searchable: (chain + " " + address).toLowerCase(),
+      marker: null
+    };
+  });
+  try {
+    if (localStorage.getItem(STATUS_STORAGE) === null) {
+      const legacy = readStatuses("fast-food-tracker.statuses.v1", true);
+      const uniqueMatches = new Map();
+      locations.forEach(location => {
+        const oldKey = location.chain + "|" + location.address;
+        uniqueMatches.set(oldKey, uniqueMatches.has(oldKey) ? null : location);
+      });
+      Object.entries(legacy).forEach(([oldKey, value]) => {
+        const location = uniqueMatches.get(oldKey);
+        if (location) {
+          statuses[location.key] = value;
+          dirtyStatusKeys.add(location.key);
+        }
+      });
+      saveStatuses();
+    }
+  } catch {
+    $("storage-notice").hidden = false;
+  }
+
+  const orderedLocations = locations.slice().sort((a, b) =>
+
+    Number(b.verified) - Number(a.verified) ||
+    a.chain.localeCompare(b.chain) ||
+    a.address.localeCompare(b.address)
+  );
+  const pinnedLocations = locations.filter(location => location.pinned);
+
+  let map = null;
+  let markerLayer = null;
+  let filterRevision = 0;
+
+  function statusOf(location) {
+    const value = statuses[location.key];
+    return statusValues.has(value) ? value : "not-applied";
+  }
+
+  function element(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function badge(location) {
+    return element(
+      "span",
+      "badge" + (location.verified ? "" : " unverified"),
+      location.verified ? "Verified" : "Unverified"
+    );
+  }
+
+  function synchronizeControls() {
+    document.querySelectorAll(".status-select").forEach(control => {
+      const value = statuses[control.dataset.key];
+      control.value = statusValues.has(value) ? value : "not-applied";
+      control.dataset.active = String(control.value !== "not-applied");
+    });
+  }
+
+  function restoreFocus(id) {
+    if (!id) return;
+    const target = [$(id), $("status-filter")].find(node => {
+      if (!node || (!node.offsetParent && !node.getClientRects().length)) return false;
+      const visibility = window.getComputedStyle(node).visibility;
+      return visibility !== "hidden" && visibility !== "collapse";
+    });
+    if (target) target.focus({ preventScroll: true });
+  }
+
+
+  function statusControl(location, context) {
+    const wrapper = element("div", "status-field");
+    const id = context + "-status-" + location.id;
+    const label = element("label", "", "Your status");
+    label.htmlFor = id;
+    const select = element("select", "status-select");
+    select.id = id;
+    select.dataset.key = location.key;
+    select.setAttribute("aria-label", "Tracker status for " + location.chain + ", " + location.address);
+
+    STATUS_OPTIONS.forEach(([value, title]) => {
+      const option = element("option", "", title);
+      option.value = value;
+      select.append(option);
+    });
+    select.value = statusOf(location);
+    select.dataset.active = String(select.value !== "not-applied");
+
+    select.addEventListener("change", () => {
+      const focusId = document.activeElement === select ? id : null;
+      statuses[location.key] = select.value;
+      dirtyStatusKeys.add(location.key);
+      saveStatuses();
+      updateSummary();
+      applyFilters(focusId);
+      synchronizeControls();
+    });
+
+    wrapper.append(label, select);
+    return wrapper;
+  }
+
+  function appleMapsLink(location) {
+    const link = element("a", "map-link", "Open in Apple Maps");
+    const query = encodeURIComponent(location.chain + ", " + location.address);
+    link.href = validCoordinates(location)
+
+      ? `https://maps.apple.com/?ll=${location.lat},${location.lon}&q=${query}`
+      : `https://maps.apple.com/?q=${query}`;
+    link.target = "_blank";
+    link.rel = "noopener";
+    return link;
+  }
+
+  function buildRow(location) {
+    const row = element("article", "location-row");
+    const information = element("div", "location-info");
+    const title = element("div", "location-title");
+    title.append(element("h3", "", location.chain), badge(location));
+    information.append(title, element("p", "address", location.address));
+    if (location.area) information.append(element("p", "area", location.area));
+    information.append(appleMapsLink(location));
+    row.append(information, statusControl(location, "row"));
+    return row;
+  }
+
+  function buildPopup(location) {
+    const popup = element("div", "popup");
+    popup.append(
+      element("h3", "", location.chain),
+      badge(location),
+      element("p", "address", location.address)
+    );
+    if (location.area) popup.append(element("p", "area", location.area));
+    popup.append(appleMapsLink(location));
+    popup.append(statusControl(location, "popup"));
+    return popup;
+  }
+
+  function updateSummary() {
+    const totals = Object.create(null);
+    STATUS_OPTIONS.forEach(([value]) => { totals[value] = 0; });
+    locations.forEach(location => { totals[statusOf(location)]++; });
+    STATUS_OPTIONS.forEach(([value]) => {
+      $("count-" + value).textContent = format(totals[value]);
+    });
+  }
+
+  function initializeCounts() {
+    const verified = locations.filter(location => location.verified).length;
+    const container = $("location-counts");
+    container.replaceChildren();
+    [
+      [locations.length, "locations"],
+      [verified, "verified"],
+      [locations.length - verified, "unverified"]
+    ].forEach(([count, label]) => {
+      const part = element("span");
+      part.append(element("strong", "", format(count)), document.createTextNode(" " + label));
+      container.append(part);
+    });
+
+    const chains = Array.from(new Set(locations.map(location => location.chain)))
+      .sort((a, b) => a.localeCompare(b));
+    chains.forEach(chain => {
+      const option = element("option", "", chain);
+      option.value = chain;
+      $("chain-filter").append(option);
+    });
+    updateSummary();
+  }
+
+  function getFilters() {
+    return {
+      search: $("search").value.trim().toLowerCase(),
+      chain: $("chain-filter").value,
+      verification: $("verified-filter").value,
+      status: $("status-filter").value
+    };
+  }
+
+  function matchesFilters(location, filters) {
+    return (!filters.search || location.searchable.includes(filters.search)) &&
+      (!filters.chain || location.chain === filters.chain) &&
+      (!filters.verification || location.verified === (filters.verification === "verified")) &&
+      (!filters.status || statusOf(location) === filters.status);
+  }
+
+  function applyFilters(focusId) {
+    const revision = ++filterRevision;
+    const filters = getFilters();
+    const visible = orderedLocations.filter(location => matchesFilters(location, filters));
+    const visiblePinned = visible.filter(location => location.pinned);
+    const openLocation = markerLayer
+      ? pinnedLocations.find(location => location.marker && location.marker.isPopupOpen())
+      : null;
+
+    const fragment = document.createDocumentFragment();
+    visible.forEach(location => fragment.append(buildRow(location)));
+    $("location-list").replaceChildren(fragment);
+    $("results-count").textContent = format(visible.length) + " of " + format(locations.length);
+
+    const active = Boolean(filters.search || filters.chain || filters.verification || filters.status);
+    $("reset-filters").hidden = !active;
+    const activeDropdowns = [filters.chain, filters.verification, filters.status].filter(Boolean).length;
+    $("filter-toggle-label").textContent = "Filters" + (activeDropdowns ? " (" + format(activeDropdowns) + ")" : "");
+    $("empty-state").hidden = visible.length > 0;
+    $("empty-reset").hidden = !locations.length;
+    $("empty-title").textContent = locations.length ? "No matching locations" : "No locations yet";
+    $("empty-description").textContent = locations.length
+      ? "Try a different search or loosen your filters."
+      : "There are no locations in the supplied dataset.";
+
+    const shownPins = map && markerLayer ? visiblePinned.length : 0;
+    $("pin-count").textContent = format(shownPins) + " pins shown";
+
+    if (markerLayer) {
+      markerLayer.clearLayers();
+      const markers = visiblePinned.map(location => location.marker);
+      if (typeof markerLayer.addLayers === "function") {
+        markerLayer.addLayers(markers);
+      } else {
+        markers.forEach(marker => markerLayer.addLayer(marker));
+      }
+
+
+      if (openLocation && visiblePinned.includes(openLocation)) {
+        const marker = openLocation.marker;
+        if (typeof markerLayer.zoomToShowLayer === "function") {
+          markerLayer.zoomToShowLayer(marker, () => {
+            if (revision !== filterRevision || !markerLayer.hasLayer(marker)) return;
+            marker.openPopup();
+            synchronizeControls();
+            restoreFocus(focusId);
+          });
+        } else {
+          marker.openPopup();
+          synchronizeControls();
+        }
+        if (focusId && focusId.startsWith("row-")) restoreFocus(focusId);
+        return;
+      }
+    }
+
+    restoreFocus(focusId);
+  }
+
+  function resetFilters() {
+    ["search", "chain-filter", "verified-filter", "status-filter"].forEach(id => {
+      $(id).value = "";
+    });
+    applyFilters();
+  }
+
+  function updateMapNote() {
+    if (map && markerLayer) {
+      $("map-note").textContent = format(pinnedLocations.length) + " pins placed; " +
+        format(locations.length - pinnedLocations.length) +
+        " locations stay in the list without a pin.";
+    } else {
+      $("map-note").textContent = format(0) + " pins placed; " +
+        format(locations.length) +
+        " locations stay in the list without a pin while the map is unavailable.";
+    }
+  }
+
+  function showMapUnavailable() {
+    if (map) {
+      try {
+        map.remove();
+      } catch {
+        // Keep the list available even if map cleanup fails.
+      }
+    }
+    map = null;
+    markerLayer = null;
+    locations.forEach(location => { location.marker = null; });
+    const message = element(
+      "div",
+      "map-unavailable",
+      "The map could not load. You can still search locations and update your tracker below."
+    );
+    message.setAttribute("role", "status");
+    $("map").replaceChildren(message);
+    updateMapNote();
+  }
+
+  function initializeMap() {
+    const leaflet = window.L;
+    if (!leaflet) {
+      showMapUnavailable();
+      return;
+    }
+    const canCluster = typeof leaflet.markerClusterGroup === "function";
+
+    try {
+      const reducedMotion = window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      map = leaflet.map("map", {
+        scrollWheelZoom: false,
+        zoomAnimation: !reducedMotion,
+        fadeAnimation: !reducedMotion,
+        markerZoomAnimation: !reducedMotion
+      }).setView([43.65, -79.38], 11);
+
+      leaflet.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 20,
+        attribution: '&copy; <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a> and its <a href="https://www.esri.com/en-us/legal/terms/data-attributions" target="_blank" rel="noopener">providers</a>'
+      }).on("tileerror", () => {
+        $("tile-notice").hidden = false;
+      }).addTo(map);
+
+
+      markerLayer = (canCluster ? leaflet.markerClusterGroup({
+        animate: !reducedMotion,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        spiderfyOnMaxZoom: true,
+        spiderLegPolylineOptions: {
+          weight: 1,
+          color: "#6b6b6b",
+          opacity: 1
+        },
+        iconCreateFunction: cluster => {
+          const count = cluster.getChildCount();
+          const verified = cluster.getAllChildMarkers().filter(marker =>
+            !marker.options.icon.options.className.split(/\s+/).includes("unverified")
+          ).length;
+          const unverified = count - verified;
+          const label = format(count) + " locations, " + format(verified) +
+            " verified, " + format(unverified) + " unverified";
+          const content = element("span", "", format(count));
+          content.setAttribute("role", "img");
+          content.setAttribute("aria-label", label);
+          content.title = label;
+          return leaflet.divIcon({
+            className: "ledger-cluster" + (verified === 0 ? " unverified" : unverified > 0 ? " mixed" : ""),
+            html: content,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+          });
+        }
+      }) : leaflet.layerGroup()).addTo(map);
+
+      const icons = {
+        verified: leaflet.divIcon({
+          className: "location-pin",
+          html: '<span class="pin-shape" aria-hidden="true"></span>',
+          iconSize: [32, 32],
+          iconAnchor: [16, 30],
+          popupAnchor: [0, -29]
+        }),
+        unverified: leaflet.divIcon({
+          className: "location-pin unverified",
+          html: '<span class="pin-shape" aria-hidden="true"></span>',
+          iconSize: [32, 32],
+          iconAnchor: [16, 30],
+          popupAnchor: [0, -29]
+        })
+      };
+
+      pinnedLocations.forEach(location => {
+        const verification = location.verified ? "Verified" : "Unverified";
+        const title = location.chain + " · " + verification + " · " + location.address;
+        const marker = leaflet.marker([location.lat, location.lon], {
+          icon: icons[location.verified ? "verified" : "unverified"],
+          title,
+          alt: title,
+          riseOnHover: true
+        });
+        const popupMargins = window.matchMedia("(max-width: 760px)").matches ? 24 : 48;
+        const popupMaxWidth = Math.max(
+          1,
+          Math.min(285, Math.floor($("map").clientWidth - 32 - popupMargins - 6))
+        );
+        marker.bindPopup(() => buildPopup(location), {
+          maxWidth: popupMaxWidth,
+          minWidth: Math.min(220, popupMaxWidth),
+          autoPanPadding: [16, 16]
+        });
+        marker.bindTooltip(element("span", "", location.chain + " · " + verification), {
+          direction: "top",
+          offset: [0, -28]
+        });
+        location.marker = marker;
+      });
+
+      if (pinnedLocations.length) {
+        map.fitBounds(
+          leaflet.latLngBounds(pinnedLocations.map(location => [location.lat, location.lon])),
+          { padding: [24, 24], maxZoom: 15, animate: false }
+        );
+      }
+
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(() => {
+          if (map) map.invalidateSize({ pan: false });
+        });
+        observer.observe($("map"));
+      }
+      updateMapNote();
+    } catch {
+      showMapUnavailable();
+    }
+  }
+
+  function bindEvents() {
+    $("search").addEventListener("input", () => applyFilters());
+    ["chain-filter", "verified-filter", "status-filter"].forEach(id => {
+      $(id).addEventListener("change", () => applyFilters());
+    });
+    $("reset-filters").addEventListener("click", resetFilters);
+    $("empty-reset").addEventListener("click", resetFilters);
+    $("filter-toggle").addEventListener("click", () => {
+      const expanded = $("filter-toggle").getAttribute("aria-expanded") !== "true";
+      $("filter-toggle").setAttribute("aria-expanded", String(expanded));
+      $("filter-options").classList.toggle("open", expanded);
+    });
+
+    window.addEventListener("storage", event => {
+      if (event.key !== STATUS_STORAGE && event.key !== null) return;
+      const updated = readStatuses();
+      refreshStatuses(updated);
+
+      const activeControl = document.activeElement;
+      const focusId = activeControl && activeControl.classList.contains("status-select")
+        ? activeControl.id
+        : null;
+      updateSummary();
+      applyFilters(focusId);
+      synchronizeControls();
+    });
+  }
+
+
+  function loadMarkerCluster() {
+    if (!window.L || typeof window.L.markerClusterGroup === "function") {
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";
+      script.onload = () => resolve();
+      script.onerror = () => resolve();
+      document.head.append(script);
+    });
+  }
+
+  initializeCounts();
+  loadMarkerCluster().then(() => {
+    initializeMap();
+    bindEvents();
+    applyFilters();
+  });
+
+
+  if (window.lucide && typeof window.lucide.createIcons === "function") {
+    window.lucide.createIcons();
+  }
+})();
+  </script>
+</body></html>
